@@ -20,8 +20,12 @@ a small FastAPI backend plus a dependency-free vanilla-JS frontend.
   usage, then respects task priority (lexicographic objective).
 - **30-minute resolution** over a rolling horizon (14 days by default, configurable).
 - **Rich task constraints** — duration, work-hours-only, continue-on-next-day splitting,
-  hard deadlines, earliest-start times, per-slot *preferred*/*unavailable* painting,
-  drag-to-reorder priorities.
+  hard deadlines, earliest and pinned starts, task dependencies, per-slot
+  *preferred*/*unavailable* painting, drag-to-reorder priorities.
+- **Re-planning aware** — mark tasks done or in-progress: the solver drops finished work
+  and freezes running tasks on their current units and times while re-planning the rest.
+  When nothing fits, an infeasibility hint names one constraint whose relaxation would
+  make the schedule feasible.
 - **Equipment pool with per-unit availability** — mark an individual unit (e.g. `VSG-1`)
   as under maintenance and the solver will never assign it during that window. Units can
   carry custom names (serial numbers, brands) instead of automatic numbering.
@@ -29,8 +33,10 @@ a small FastAPI backend plus a dependency-free vanilla-JS frontend.
   holidays: pick dates manually or auto-fill any country's official holidays
   (via the [`holidays`](https://pypi.org/project/holidays/) package).
 - **Full-screen schedule view** — zoomable SVG Gantt with rich hover tooltips, a start/end
-  details table, and one-click export to a self-contained single-file HTML report.
-- **Bilingual UI** — English and Turkish, switchable at runtime.
+  details table, and exports to a self-contained HTML report, CSV, or an ICS calendar.
+- **Bilingual UI with dark mode** — English and Turkish out of the box; adding a language
+  is one JSON file. Keyboard- and touch-friendly (focus traps, ARIA roles, pointer-event
+  painting).
 - **Zero database** — your whole project is one human-readable `data/project.json`.
 
 ## Quick start
