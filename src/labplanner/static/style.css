@@ -465,4 +465,29 @@ footer a:hover{color:var(--accent)}
 footer a span[data-icon]{display:inline-flex}
 footer a svg{width:14px;height:14px}
 
+/* ---------- insights ---------- */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--s3);
+  margin-bottom:var(--s4)}
+.kpi{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
+  padding:var(--s3) var(--s4);box-shadow:var(--shadow)}
+.kpi-v{font-size:20px;font-weight:700;letter-spacing:-.01em}
+.kpi-k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
+.ins-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:var(--s4);
+  margin-bottom:var(--s4)}
+.ins-grid .panel{margin:0}
+#tab-insights .panel{margin-bottom:var(--s4)}
+.bars{display:flex;flex-direction:column;gap:var(--s2)}
+.bar-row{display:flex;align-items:center;gap:var(--s2);font-size:12px}
+.bar-label{flex:0 0 34%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-track{flex:1;height:12px;background:var(--offhours);border-radius:6px;overflow:hidden}
+.bar-fill{display:block;height:100%;background:var(--accent);border-radius:6px}
+.bar-val{flex:0 0 auto;color:var(--muted);font-variant-numeric:tabular-nums;min-width:96px;text-align:right}
+table.heat{border-collapse:collapse;font-size:11px}
+table.heat th{padding:2px 4px;color:var(--muted);font-weight:600;text-transform:none;
+  letter-spacing:0;border:none;white-space:nowrap}
+table.heat td.hlabel{padding:2px 8px 2px 2px;white-space:nowrap;border:none;color:var(--text)}
+table.heat td.hcell{width:34px;height:22px;text-align:center;border:1px solid var(--cell-border);
+  background:rgba(37,99,235,calc(var(--r)*0.85));color:var(--text);font-variant-numeric:tabular-nums}
+.ins-list{margin:0;padding-left:20px;line-height:1.7}
+
 [hidden]{display:none!important}

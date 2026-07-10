@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Full-screen schedule view: zoomable SVG Gantt with rich hover tooltips, a
   start/end details table, and a self-contained interactive HTML report export
   that shares the Gantt's zoom.
+- Insights tab: KPI tiles, per-unit and per-type utilisation bars, a units×days
+  load heatmap, and bottleneck / late-task callouts derived from the schedule.
 - Dark mode, first-visit onboarding tour, per-section help screens,
   JSON-based locales, keyboard and touch accessibility.
 - Multiple projects (create, rename, duplicate, import/export, delete) with a

@@ -37,6 +37,9 @@ a small FastAPI backend plus a dependency-free vanilla-JS frontend.
 - **Full-screen schedule view** — zoomable SVG Gantt with rich hover tooltips, a start/end
   details table, and a one-click export to a self-contained interactive HTML report that
   keeps the same zoom.
+- **Insights** — a reporting tab derived from the solved schedule: KPI tiles (makespan, late
+  tasks, average utilisation, busiest unit), per-unit and per-type utilisation bars, a
+  units×days load heatmap, and bottleneck/deadline callouts.
 - **Bilingual UI with dark mode** — English and Turkish out of the box; adding a language
   is one JSON file. Keyboard- and touch-friendly (focus traps, ARIA roles, pointer-event
   painting).

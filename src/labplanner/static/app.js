@@ -327,6 +327,7 @@ function activateTab(name) {
   $$(".tab").forEach(s => s.classList.toggle("active", s.id === "tab-" + name));
   document.body.classList.toggle("tab-schedule", name === "schedule");
   if (name === "schedule") renderSchedule(); // re-measure width for the Gantt
+  if (name === "insights") renderInsights();
 }
 $$("#tabs button").forEach(b => { b.onclick = () => activateTab(b.dataset.tab); });
 $("#tabs").addEventListener("keydown", e => {
@@ -1650,6 +1651,112 @@ function renderDetailsTable() {
   $("#detailsPanel").hidden = false;
 }
 
+/* ================= insights (metrics derived from the solved schedule) ======= */
+function computeInsights() {
+  const sc = project.schedule;
+  const units = allUnits();
+  const SPD = horizon.slots_per_day, days = horizon.days;
+  const busy = new Map(units.map(u => [u, new Set()]));
+  const perDay = new Map(units.map(u => [u, new Array(days).fill(0)]));
+  let lastEnd = horizon.now_slot;
+  sc.tasks.forEach(stt => stt.units.forEach(u => {
+    if (!busy.has(u)) return;
+    stt.segments.forEach(seg => {
+      lastEnd = Math.max(lastEnd, seg.end_slot);
+      for (let s = seg.start_slot; s < seg.end_slot; s++) {
+        busy.get(u).add(s);
+        const d = Math.floor(s / SPD);
+        if (d >= 0 && d < days) perDay.get(u)[d] += 1;
+      }
+    });
+  }));
+  const windowSlots = Math.max(1, lastEnd - horizon.now_slot);
+  const perUnit = units.map(u => ({
+    unit: u, busy: busy.get(u).size, util: busy.get(u).size / windowSlots,
+    perDay: perDay.get(u),
+  }));
+  const typeAgg = project.equipment.map(eq => {
+    const us = unitsOf(eq);
+    const b = us.reduce((a, u) => a + (busy.get(u) ? busy.get(u).size : 0), 0);
+    return { type: eq.name, count: us.length, util: b / (windowSlots * Math.max(1, us.length)) };
+  }).filter(x => x.count > 0);
+  const rows = scheduleRows();
+  const late = rows.filter(r => r.deadline && !r.met);
+  const overall = units.length
+    ? perUnit.reduce((a, p) => a + p.busy, 0) / (units.length * windowSlots) : 0;
+  const busiest = perUnit.slice().sort((a, b) => b.util - a.util)[0] || null;
+  const driver = rows.slice().sort((a, b) => (a.end < b.end ? 1 : -1))[0] || null;
+  return { perUnit, typeAgg, late, overall, busiest, driver };
+}
+
+function renderInsights() {
+  const el = $("#insights");
+  const sc = project.schedule;
+  if (!sc || sc.status === "INFEASIBLE" || !sc.tasks.length) {
+    el.innerHTML = `<div class="panel"><div class="empty-state">${esc(t("ins.empty"))}</div></div>`;
+    return;
+  }
+  const m = computeInsights();
+  const pct = x => Math.round(x * 100);
+  const bar = (label, ratio, val) =>
+    `<div class="bar-row"><span class="bar-label">${label}</span>
+      <span class="bar-track"><span class="bar-fill" style="width:${Math.round(ratio * 100)}%"></span></span>
+      <span class="bar-val">${val}</span></div>`;
+
+  const tiles = [
+    [fmtHours(sc.makespan_minutes || 0), t("ins.kpiMakespan")],
+    [String(sc.tasks.length), t("ins.kpiTasks")],
+    [String(m.late.length), t("ins.kpiLate")],
+    [pct(m.overall) + "%", t("ins.kpiUtil")],
+    [m.busiest ? `${esc(m.busiest.unit)} · ${pct(m.busiest.util)}%` : "—", t("ins.kpiBusiest")],
+  ].map(([v, k]) => `<div class="kpi"><div class="kpi-v">${v}</div><div class="kpi-k">${esc(k)}</div></div>`)
+    .join("");
+
+  const maxU = Math.max(0.0001, ...m.perUnit.map(p => p.util));
+  const unitBars = m.perUnit.slice().sort((a, b) => b.util - a.util).map(p =>
+    bar(esc(p.unit), p.util / maxU, `${pct(p.util)}% · ${esc(t("ins.busy", { h: fmtHours(p.busy * 30) }))}`)).join("");
+  const typeBars = m.typeAgg.slice().sort((a, b) => b.util - a.util).map(x =>
+    bar(`${esc(x.type)} ×${x.count}`, x.util, `${pct(x.util)}%`)).join("");
+
+  const maxDay = Math.max(1, ...m.perUnit.flatMap(p => p.perDay));
+  let heat = `<div class="tablewrap"><table class="heat"><thead><tr><th></th>` +
+    [...Array(horizon.days)].map((_, d) => `<th>${esc(dayLabel(d))}</th>`).join("") + `</tr></thead><tbody>`;
+  m.perUnit.forEach(p => {
+    heat += `<tr><td class="hlabel">${esc(p.unit)}</td>` + p.perDay.map(c =>
+      `<td class="hcell" style="--r:${(c / maxDay).toFixed(3)}" ` +
+      `title="${esc(p.unit)} · ${esc(fmtHours(c * 30))}">${c ? c / 2 : ""}</td>`).join("") + `</tr>`;
+  });
+  heat += `</tbody></table></div>`;
+
+  const bl = [];
+  if (m.typeAgg.length) {
+    const top = m.typeAgg.slice().sort((a, b) => b.util - a.util)[0];
+    bl.push(t("ins.tightest", { name: top.type, pct: pct(top.util) }));
+  }
+  if (m.driver) bl.push(t("ins.driver", { name: m.driver.stt.task_name, at: fmtDT(m.driver.end) }));
+  if (m.late.length) {
+    m.late.slice(0, 6).forEach(r => bl.push(t("ins.lateBy", {
+      name: r.stt.task_name, amount: fmtHours((new Date(r.end) - r.deadline) / 60000),
+    })));
+  } else {
+    bl.push(t("ins.noLate"));
+  }
+
+  el.innerHTML = `
+    <div class="kpi-row">${tiles}</div>
+    <div class="ins-grid">
+      <div class="panel"><div class="panel-head"><h2>${esc(t("ins.byUnit"))}</h2>
+        <button id="btnInfoInsights" class="btn icon ghost" data-i18n-title="info.title">${icon("info")}</button>
+        </div><div class="bars">${unitBars}</div></div>
+      <div class="panel"><h2>${esc(t("ins.byType"))}</h2><div class="bars">${typeBars}</div></div>
+    </div>
+    <div class="panel"><h2>${esc(t("ins.heatmap"))}</h2>${heat}</div>
+    <div class="panel"><h2>${esc(t("ins.bottlenecks"))}</h2>
+      <ul class="ins-list">${bl.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>`;
+  const info = $("#btnInfoInsights");
+  if (info) { info.title = t("info.title"); info.onclick = () => infoModal("info.insights"); }
+}
+
 function downloadBlob(content, type, filename) {
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([content], { type }));
@@ -1792,6 +1899,7 @@ function renderAll() {
   renderTaskList();
   renderEditor();
   renderSchedule();
+  renderInsights();
 }
 window.renderAll = renderAll;
 
