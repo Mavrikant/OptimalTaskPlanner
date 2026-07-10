@@ -1258,9 +1258,12 @@ async function load() {
   loadVersion();
   if (!localStorage.getItem("labplanner.onboarded")) showOnboarding(0);
 }
-applyI18n();
-renderLangMenu();
-load().catch(e => {
+(async () => {
+  await loadLocales();  // dictionaries must be in place before the first render
+  applyI18n();
+  renderLangMenu();
+  await load();
+})().catch(e => {
   document.querySelector("main").insertAdjacentHTML("afterbegin",
     `<div class="panel" style="margin-bottom:16px;color:var(--red)">${esc(e.message)}</div>`);
 });

@@ -50,7 +50,7 @@ labplanner = "labplanner.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-labplanner = ["static/*"]
+labplanner = ["static/*", "static/locales/*"]
 
 [tool.ruff]
 line-length = 100

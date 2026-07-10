@@ -33,8 +33,12 @@ CI runs the same checks on Python 3.10 and 3.12.
 ## Guidelines
 
 - Keep the backend in English (code, comments, error messages).
-- Every user-visible frontend string must go through the i18n layer
-  (`src/labplanner/static/i18n.js`) with both `en` and `tr` translations.
+- Every user-visible frontend string must go through the i18n layer: add the
+  key to **every** dictionary in `src/labplanner/static/locales/*.json`
+  (a test enforces that all locales share the same keys).
+- Adding a language is two steps: create `static/locales/<code>.json` with the
+  same keys as `en.json`, and append a `{code, name, flag}` entry to
+  `LANGUAGES` in `static/i18n.js`.
 - The solver (`solver.py`) must stay deterministic under an injected `now`
   timestamp — that is what makes it testable. Add a test for any solver change.
 - Prefer small, focused pull requests with a clear description.
