@@ -23,6 +23,7 @@
     </div>
   </div>
   <span id="saveState" class="save-state"></span>
+  <button id="btnTour" class="btn icon ghost" data-icon="help" data-i18n-title="ob.tour"></button>
   <div class="lang-menu" id="langMenu">
     <button id="langBtn" class="btn lang-btn" data-i18n-title="lang.label" aria-haspopup="true" aria-expanded="false">
       <span class="flag" id="langFlag"></span>
@@ -200,6 +201,23 @@
     </div>
   </div>
 </footer>
+
+<div id="onboardBack" class="modal-back" hidden>
+  <div class="modal onboard" role="dialog" aria-modal="true" aria-label="Introduction">
+    <div class="ob-lang" id="obLang"></div>
+    <div class="ob-icon" id="obIcon"></div>
+    <h3 id="obTitle"></h3>
+    <div class="info-body" id="obBody"></div>
+    <div class="ob-dots" id="obDots"></div>
+    <div class="ob-foot">
+      <button id="obSkip" class="btn ghost" data-i18n="ob.skip"></button>
+      <span style="flex:1"></span>
+      <button id="obPrev" class="btn" data-i18n="ob.back"></button>
+      <button id="obNext" class="btn primary" data-i18n="ob.next"></button>
+      <button id="obStart" class="btn primary" data-i18n="ob.start" hidden></button>
+    </div>
+  </div>
+</div>
 
 <div id="tooltip" class="tooltip" hidden></div>
 

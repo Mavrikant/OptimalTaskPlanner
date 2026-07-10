@@ -131,6 +131,58 @@ function confirmModal(title, message, okLabel) {
   });
 }
 
+/* ================= onboarding tour ================= */
+const OB_STEPS = [
+  { key: "welcome", icon: "brand" },
+  { key: "resources", icon: "package" },
+  { key: "tasks", icon: "tasks" },
+  { key: "schedule", icon: "gantt" },
+];
+let obStep = 0;
+
+function showOnboarding(step) {
+  obStep = Math.max(0, Math.min(OB_STEPS.length - 1, step));
+  const { key, icon: ic } = OB_STEPS[obStep];
+  $("#obIcon").innerHTML = icon(ic);
+  $("#obTitle").textContent = t(`ob.${key}.title`);
+  $("#obBody").innerHTML = t(`ob.${key}.body`);
+  const dots = $("#obDots"); dots.innerHTML = "";
+  OB_STEPS.forEach((_, i) => {
+    const d = document.createElement("button");
+    d.className = i === obStep ? "active" : "";
+    d.onclick = () => showOnboarding(i);
+    dots.appendChild(d);
+  });
+  $("#obPrev").hidden = obStep === 0;
+  $("#obNext").hidden = obStep === OB_STEPS.length - 1;
+  $("#obStart").hidden = obStep !== OB_STEPS.length - 1;
+  const langBox = $("#obLang"); langBox.innerHTML = "";
+  LANGUAGES.forEach(l => {
+    const b = document.createElement("button");
+    b.className = l.code === LANG ? "active" : "";
+    b.title = l.name;
+    b.innerHTML = `<span class="flag">${l.flag}</span>`;
+    b.onclick = () => { setLang(l.code); showOnboarding(obStep); };
+    langBox.appendChild(b);
+  });
+  $("#onboardBack").hidden = false;
+}
+function closeOnboarding() {
+  localStorage.setItem("labplanner.onboarded", "1");
+  $("#onboardBack").hidden = true;
+}
+$("#obSkip").onclick = closeOnboarding;
+$("#obStart").onclick = closeOnboarding;
+$("#obNext").onclick = () => showOnboarding(obStep + 1);
+$("#obPrev").onclick = () => showOnboarding(obStep - 1);
+$("#btnTour").onclick = () => showOnboarding(0);
+document.addEventListener("keydown", e => {
+  if ($("#onboardBack").hidden) return;
+  if (e.key === "Escape") closeOnboarding();
+  if (e.key === "ArrowRight") showOnboarding(obStep + 1);
+  if (e.key === "ArrowLeft") showOnboarding(obStep - 1);
+});
+
 /* section help screens (content lives in i18n.js as info.* keys) */
 function infoModal(key) {
   openModal({
@@ -1105,6 +1157,7 @@ async function load() {
   renderAll();
   loadCountries(); // async, non-blocking
   loadVersion();
+  if (!localStorage.getItem("labplanner.onboarded")) showOnboarding(0);
 }
 applyI18n();
 renderLangMenu();

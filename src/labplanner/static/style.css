@@ -290,6 +290,29 @@ table.slotgrid td.cell.past{
 .info-body p{margin:0 0 10px}
 .info-body ul,.info-body ol{margin:0 0 10px;padding-left:20px}
 .info-body li{margin-bottom:5px}
+
+/* ---------- onboarding tour ---------- */
+.modal.onboard{max-width:600px;position:relative}
+.ob-icon{
+  width:56px;height:56px;border-radius:16px;background:var(--accent-weak);
+  color:var(--accent);display:flex;align-items:center;justify-content:center;
+  margin-bottom:14px;
+}
+.ob-icon svg{width:30px;height:30px}
+.ob-lang{position:absolute;top:16px;right:16px;display:flex;gap:5px}
+.ob-lang button{
+  border:1px solid var(--border);background:none;border-radius:6px;padding:4px 6px;
+  cursor:pointer;display:flex;align-items:center;opacity:.55;
+}
+.ob-lang button:hover{opacity:1}
+.ob-lang button.active{opacity:1;border-color:var(--accent)}
+.ob-dots{display:flex;gap:8px;justify-content:center;margin:16px 0 16px}
+.ob-dots button{
+  width:9px;height:9px;border-radius:5px;border:none;background:var(--border-strong);
+  cursor:pointer;padding:0;transition:width .15s,background .15s;
+}
+.ob-dots button.active{background:var(--accent);width:24px}
+.ob-foot{display:flex;gap:8px;align-items:center}
 .modal h3{font-size:16px;margin-bottom:14px}
 .modal-body .field{margin-bottom:12px}
 .modal-body input[type=text],.modal-body input[type=number]{width:100%}

@@ -148,6 +148,44 @@ const I18N = {
     "footer.powered": "Built with OR-Tools CP-SAT & FastAPI",
     "footer.license": "MIT License",
 
+    "ob.tour": "Show intro tour",
+    "ob.skip": "Skip tour",
+    "ob.back": "Back",
+    "ob.next": "Next",
+    "ob.start": "Get started",
+    "ob.welcome.title": "Welcome to LabPlanner",
+    "ob.welcome.body":
+      "<p><b>LabPlanner</b> plans your lab work on shared equipment — <b>optimally</b>. " +
+      "You describe your devices and tasks; the Google OR-Tools <b>CP-SAT</b> solver " +
+      "finds the schedule that finishes everything as early as possible while " +
+      "respecting every constraint.</p>" +
+      "<p>It runs entirely on your machine: the whole project lives in one local JSON " +
+      "file — no accounts, no cloud.</p>",
+    "ob.resources.title": "1 · Define your resources",
+    "ob.resources.body":
+      "<p>Start in the <b>Resources</b> tab:</p><ul>" +
+      "<li>Add each <b>equipment type</b> and how many physical units you own " +
+      "(e.g. VSG ×3). Units can carry custom names.</li>" +
+      "<li>Set your <b>working hours</b> and add <b>public holidays</b> — manually or " +
+      "auto-filled by country.</li>" +
+      "<li>Paint <b>maintenance windows</b> on individual units; the solver never " +
+      "books them during those hours.</li></ul>",
+    "ob.tasks.title": "2 · Describe your tasks",
+    "ob.tasks.body":
+      "<p>In the <b>Tasks</b> tab, create a task for each piece of work:</p><ul>" +
+      "<li>Duration in half-hour steps, plus the equipment it needs.</li>" +
+      "<li>Optional limits: work-hours-only, earliest start, deadline.</li>" +
+      "<li>Paint time slots the task must avoid or should prefer.</li>" +
+      "<li>Drag tasks in the list — higher means more important.</li></ul>",
+    "ob.schedule.title": "3 · Solve and share",
+    "ob.schedule.body":
+      "<p>Press <b>Solve schedule</b>. In seconds you get a provably optimal plan:</p><ul>" +
+      "<li>A per-unit <b>Gantt chart</b> — zoom in for hour lines, hover for details.</li>" +
+      "<li>A table with start, end and deadline status for every task.</li>" +
+      "<li><b>Export HTML</b> creates a single-file report you can share.</li></ul>" +
+      "<p>Look for the <b>ⓘ</b> buttons around the app for detailed help on each " +
+      "section. Have fun!</p>",
+
     "info.title": "About this section",
     "info.solve.title": "How the schedule is solved",
     "info.solve.body":
@@ -348,6 +386,45 @@ const I18N = {
     "footer.tagline": "Açık kaynak optimal laboratuvar planlama",
     "footer.powered": "OR-Tools CP-SAT ve FastAPI ile geliştirildi",
     "footer.license": "MIT Lisansı",
+
+    "ob.tour": "Tanıtım turunu göster",
+    "ob.skip": "Turu atla",
+    "ob.back": "Geri",
+    "ob.next": "İleri",
+    "ob.start": "Başlayalım",
+    "ob.welcome.title": "LabPlanner'a hoş geldiniz",
+    "ob.welcome.body":
+      "<p><b>LabPlanner</b>, ortak ekipman üzerinde yürüyen laboratuvar işlerinizi " +
+      "<b>optimal</b> şekilde planlar. Siz cihazlarınızı ve görevlerinizi " +
+      "tanımlarsınız; Google OR-Tools <b>CP-SAT</b> çözücüsü tüm kısıtlara uyarak her " +
+      "şeyi olabildiğince erken bitiren çizelgeyi bulur.</p>" +
+      "<p>Tamamen kendi makinenizde çalışır: tüm proje tek bir yerel JSON dosyasında " +
+      "durur — hesap yok, bulut yok.</p>",
+    "ob.resources.title": "1 · Kaynaklarınızı tanımlayın",
+    "ob.resources.body":
+      "<p><b>Kaynaklar</b> sekmesinden başlayın:</p><ul>" +
+      "<li>Her <b>ekipman tipini</b> ve kaç fiziksel birim olduğunu ekleyin " +
+      "(örn. VSG ×3). Birimlere özel ad verebilirsiniz.</li>" +
+      "<li><b>Mesai saatlerinizi</b> ayarlayın, <b>resmi tatilleri</b> ekleyin — elle " +
+      "veya ülkeye göre otomatik.</li>" +
+      "<li>Birimlerin <b>bakım pencerelerini</b> boyayın; çözücü o saatlerde onları " +
+      "asla kullanmaz.</li></ul>",
+    "ob.tasks.title": "2 · Görevlerinizi tanımlayın",
+    "ob.tasks.body":
+      "<p><b>Görevler</b> sekmesinde her iş için bir görev oluşturun:</p><ul>" +
+      "<li>Yarım saat adımlı süre ve ihtiyaç duyduğu ekipmanlar.</li>" +
+      "<li>İsteğe bağlı sınırlar: sadece mesai, en erken başlangıç, termin.</li>" +
+      "<li>Görevin kaçınacağı veya yeğleyeceği saatleri boyayın.</li>" +
+      "<li>Listedeki görevleri sürükleyin — üstteki daha önceliklidir.</li></ul>",
+    "ob.schedule.title": "3 · Çözün ve paylaşın",
+    "ob.schedule.body":
+      "<p><b>Planı çöz</b>'e basın. Saniyeler içinde kanıtlanabilir optimal bir plan " +
+      "elde edersiniz:</p><ul>" +
+      "<li>Birim bazlı <b>Gantt şeması</b> — saat çizgileri için yakınlaşın, ayrıntı " +
+      "için üzerine gelin.</li>" +
+      "<li>Her görevin başlangıç, bitiş ve termin durumunu gösteren tablo.</li>" +
+      "<li>Paylaşabileceğiniz tek dosyalık rapor için <b>HTML dışa aktar</b>.</li></ul>" +
+      "<p>Her bölümdeki <b>ⓘ</b> düğmeleri ayrıntılı yardım içerir. İyi çalışmalar!</p>",
 
     "info.title": "Bu bölüm hakkında",
     "info.solve.title": "Plan nasıl çözülüyor?",
