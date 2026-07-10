@@ -80,13 +80,17 @@ def test_import_project(client):
     assert r.status_code == 200
     assert r.json()["name"] == "Imported copy"
 
-    assert client.post("/api/projects/import",
-                       json={"tasks": [{"id": "x", "name": "bad", "minutes": 45}]}
-                       ).status_code == 422
+    assert (
+        client.post(
+            "/api/projects/import", json={"tasks": [{"id": "x", "name": "bad", "minutes": 45}]}
+        ).status_code
+        == 422
+    )
 
 
 def _solve_and_wait(client, pid, timeout=30.0):
     import time as _time
+
     job_id = client.post(f"/api/projects/{pid}/solve").json()["job_id"]
     deadline = _time.monotonic() + timeout
     while _time.monotonic() < deadline:
@@ -121,6 +125,7 @@ def test_solve_cancel_is_accepted(client):
     # the job still reaches a terminal state (done if it already had a solution,
     # or cancelled if stopped first)
     import time as _time
+
     deadline = _time.monotonic() + 30.0
     while _time.monotonic() < deadline:
         status = client.get(f"/api/solve/{job_id}").json()["status"]

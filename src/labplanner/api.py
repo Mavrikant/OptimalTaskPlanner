@@ -39,8 +39,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         cal = project.calendar
         days = project.solver.days
         holidays_set = set(cal.holidays)
-        day_dates = [(start + timedelta(days=d)).date().isoformat()
-                     for d in range(days)]
+        day_dates = [(start + timedelta(days=d)).date().isoformat() for d in range(days)]
         return {
             "now": now.isoformat(timespec="minutes"),
             "start_date": start.date().isoformat(),
@@ -51,8 +50,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "work_start_slot": cal.work_start_slot,
             "work_end_slot": cal.work_end_slot,
             "day_dates": day_dates,
-            "day_weekdays": [(start + timedelta(days=d)).weekday()
-                             for d in range(settings.days)],
+            "day_weekdays": [(start + timedelta(days=d)).weekday() for d in range(settings.days)],
             "holiday_flags": [d in holidays_set for d in day_dates],
         }
 
@@ -85,8 +83,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def create_project(payload: dict | None = None) -> dict:
         name = str((payload or {}).get("name") or "").strip() or "New project"
         # new projects inherit the server-level defaults (CLI --days / env)
-        seed = Project(name=name, solver=SolverOptions(
-            days=settings.days, time_limit_s=int(settings.solver_time_limit_s)))
+        seed = Project(
+            name=name,
+            solver=SolverOptions(
+                days=settings.days, time_limit_s=int(settings.solver_time_limit_s)
+            ),
+        )
         pid = store.create(name, seed)
         return {"id": pid, "name": name}
 
@@ -143,8 +145,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     def _prune_jobs() -> None:
         cutoff = time.time() - 300  # keep terminal jobs 5 min for late polls
-        for jid in [j for j, v in jobs.items()
-                    if v["status"] != "running" and v["finished"] < cutoff]:
+        for jid in [
+            j for j, v in jobs.items() if v["status"] != "running" and v["finished"] < cutoff
+        ]:
             jobs.pop(jid, None)
 
     @app.post("/api/projects/{pid}/solve")
@@ -153,9 +156,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         job_id = uuid.uuid4().hex[:12]
         cancel = threading.Event()
         job = {
-            "id": job_id, "status": "running", "started": time.time(), "finished": 0.0,
-            "best_makespan_minutes": None, "schedule": None, "horizon": None,
-            "error": None, "cancel": cancel,
+            "id": job_id,
+            "status": "running",
+            "started": time.time(),
+            "finished": 0.0,
+            "best_makespan_minutes": None,
+            "schedule": None,
+            "horizon": None,
+            "error": None,
+            "cancel": cancel,
         }
         with jobs_lock:
             _prune_jobs()
@@ -167,10 +176,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         def run() -> None:
             try:
                 schedule = solver.solve(
-                    project, days=project.solver.days,
+                    project,
+                    days=project.solver.days,
                     time_limit_s=project.solver.time_limit_s,
                     workers=project.solver.workers,
-                    progress=on_progress, cancel=cancel,
+                    progress=on_progress,
+                    cancel=cancel,
                 )
                 if schedule.status == "CANCELLED":
                     job["status"] = "cancelled"
@@ -244,8 +255,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         try:
             found = calendar_utils.country_holidays(country, years=[year])
         except NotImplementedError as e:
-            raise HTTPException(status_code=400,
-                                detail=f"Unsupported country code: {country}") from e
+            raise HTTPException(
+                status_code=400, detail=f"Unsupported country code: {country}"
+            ) from e
         return {"country": country, "year": year, "holidays": found}
 
     return app

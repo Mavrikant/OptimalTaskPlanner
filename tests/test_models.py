@@ -51,8 +51,9 @@ def test_task_slot_states_validated():
 
 
 def test_work_calendar_validation():
-    cal = WorkCalendar(work_start="08:30", work_end="17:00",
-                       holidays=["2026-07-15", "2026-07-15", "2026-01-01"])
+    cal = WorkCalendar(
+        work_start="08:30", work_end="17:00", holidays=["2026-07-15", "2026-07-15", "2026-01-01"]
+    )
     assert cal.work_start_slot == 17
     assert cal.work_end_slot == 34
     assert cal.holidays == ["2026-01-01", "2026-07-15"]  # deduped + sorted
@@ -89,10 +90,14 @@ def test_default_unit_naming():
 
 def test_project_rejects_duplicate_unit_names_across_types():
     with pytest.raises(ValidationError):
-        Project.model_validate({"equipment": [
-            {"name": "A", "count": 2, "unit_names": ["X", "Y"]},
-            {"name": "B", "count": 1, "unit_names": ["X"]},
-        ]})
+        Project.model_validate(
+            {
+                "equipment": [
+                    {"name": "A", "count": 2, "unit_names": ["X", "Y"]},
+                    {"name": "B", "count": 1, "unit_names": ["X"]},
+                ]
+            }
+        )
 
 
 def test_task_earliest_start_validation():
@@ -111,8 +116,14 @@ def test_task_pinned_start_validation():
 
 def test_solver_options_defaults_and_bounds():
     assert Project(name="x").solver == SolverOptions(time_limit_s=20, workers=8, days=14)
-    for bad in [{"time_limit_s": 4}, {"time_limit_s": 121},
-                {"workers": 0}, {"workers": 17}, {"days": 0}, {"days": 32}]:
+    for bad in [
+        {"time_limit_s": 4},
+        {"time_limit_s": 121},
+        {"workers": 0},
+        {"workers": 17},
+        {"days": 0},
+        {"days": 32},
+    ]:
         with pytest.raises(ValidationError):
             SolverOptions(**bad)
 

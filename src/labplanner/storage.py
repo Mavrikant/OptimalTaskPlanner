@@ -42,26 +42,57 @@ def default_project(name: str = "My lab") -> Project:
         {"name": "GPS Simulator", "count": 1},
     ]
     tasks = [
-        {"id": str(uuid.uuid4()), "name": "RF calibration sweep", "minutes": 240,
-         "work_hours_only": True, "continue_next_day": False,
-         "resources": {"VSG": 2, "Spectrum Analyzer": 1}, "slots": {}},
-        {"id": str(uuid.uuid4()), "name": "Firmware bake (18 h)", "minutes": 1080,
-         "work_hours_only": True, "continue_next_day": True,
-         "resources": {"Power Supply": 1, "DMM": 1}, "slots": {}},
-        {"id": str(uuid.uuid4()), "name": "Environmental soak", "minutes": 2160,
-         "work_hours_only": False, "continue_next_day": False,
-         "resources": {"Climatic Chamber": 1, "DMM": 1}, "slots": {}},
-        {"id": str(uuid.uuid4()), "name": "Receiver sensitivity test", "minutes": 360,
-         "work_hours_only": True, "continue_next_day": False,
-         "resources": {"VSG": 1, "VSA": 1, "Oscilloscope": 1}, "slots": {}},
-        {"id": str(uuid.uuid4()), "name": "GPS scenario replay", "minutes": 480,
-         "work_hours_only": False, "continue_next_day": False,
-         "resources": {"GPS Simulator": 1, "Oscilloscope": 1}, "slots": {}},
+        {
+            "id": str(uuid.uuid4()),
+            "name": "RF calibration sweep",
+            "minutes": 240,
+            "work_hours_only": True,
+            "continue_next_day": False,
+            "resources": {"VSG": 2, "Spectrum Analyzer": 1},
+            "slots": {},
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "name": "Firmware bake (18 h)",
+            "minutes": 1080,
+            "work_hours_only": True,
+            "continue_next_day": True,
+            "resources": {"Power Supply": 1, "DMM": 1},
+            "slots": {},
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "name": "Environmental soak",
+            "minutes": 2160,
+            "work_hours_only": False,
+            "continue_next_day": False,
+            "resources": {"Climatic Chamber": 1, "DMM": 1},
+            "slots": {},
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "name": "Receiver sensitivity test",
+            "minutes": 360,
+            "work_hours_only": True,
+            "continue_next_day": False,
+            "resources": {"VSG": 1, "VSA": 1, "Oscilloscope": 1},
+            "slots": {},
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "name": "GPS scenario replay",
+            "minutes": 480,
+            "work_hours_only": False,
+            "continue_next_day": False,
+            "resources": {"GPS Simulator": 1, "Oscilloscope": 1},
+            "slots": {},
+        },
     ]
     return Project.model_validate({"name": name, "equipment": equipment, "tasks": tasks})
 
 
 # ---------------------------------------------------------------- migrations
+
 
 def _migrate_v1(raw: dict) -> dict:
     """v1 -> v2: single-file era projects had no name / schema_version."""
@@ -96,6 +127,7 @@ def migrate(raw: dict) -> dict:
 
 # ------------------------------------------------------------------- store
 
+
 class ProjectStore:
     def __init__(self, data_dir: Path | str):
         self.data_dir = Path(data_dir)
@@ -125,12 +157,15 @@ class ProjectStore:
                 raw = json.loads(path.read_text(encoding="utf-8"))
             except (OSError, json.JSONDecodeError):
                 continue
-            out.append({
-                "id": path.stem,
-                "name": raw.get("name", path.stem),
-                "updated_at": datetime.fromtimestamp(path.stat().st_mtime)
-                .isoformat(timespec="seconds"),
-            })
+            out.append(
+                {
+                    "id": path.stem,
+                    "name": raw.get("name", path.stem),
+                    "updated_at": datetime.fromtimestamp(path.stat().st_mtime).isoformat(
+                        timespec="seconds"
+                    ),
+                }
+            )
         return sorted(out, key=lambda p: p["name"].lower())
 
     def create(self, name: str, project: Project | None = None) -> str:
@@ -208,8 +243,7 @@ class ProjectStore:
         self._prune(pid)
 
     def _prune(self, pid: str) -> None:
-        backups = sorted(self._backup_dir(pid).glob("*.json"),
-                         key=lambda f: f.name, reverse=True)
+        backups = sorted(self._backup_dir(pid).glob("*.json"), key=lambda f: f.name, reverse=True)
         for stale in backups[BACKUP_KEEP:]:
             stale.unlink()
 
@@ -226,8 +260,7 @@ class ProjectStore:
                 created = datetime.strptime(stamp, "%Y%m%d-%H%M%S-%f")
             except ValueError:
                 continue
-            out.append({"name": path.name,
-                        "created_at": created.isoformat(timespec="seconds")})
+            out.append({"name": path.name, "created_at": created.isoformat(timespec="seconds")})
         return out
 
     def restore_backup(self, pid: str, name: str) -> None:

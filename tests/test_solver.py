@@ -18,9 +18,13 @@ def make_project(equipment, tasks, calendar=None):
 
 def make_task(**kw):
     base = {
-        "id": kw.get("id", "t1"), "name": kw.get("name", "Task"), "minutes": 120,
-        "work_hours_only": False, "continue_next_day": False,
-        "resources": {}, "slots": {},
+        "id": kw.get("id", "t1"),
+        "name": kw.get("name", "Task"),
+        "minutes": 120,
+        "work_hours_only": False,
+        "continue_next_day": False,
+        "resources": {},
+        "slots": {},
     }
     base.update(kw)
     return base
@@ -57,18 +61,14 @@ def test_half_hour_resolution():
 
 
 def test_past_deadline_is_infeasible():
-    p = make_project(
-        [], [make_task(deadline={"date": DAY0, "time": "06:00"})]
-    )
+    p = make_project([], [make_task(deadline={"date": DAY0, "time": "06:00"})])
     s = solve(p, now=NOW)
     assert s.status == "INFEASIBLE"
     assert "past" in s.message
 
 
 def test_deadline_constrains_end():
-    p = make_project(
-        [], [make_task(minutes=60, deadline={"date": DAY0, "time": "08:30"})]
-    )
+    p = make_project([], [make_task(minutes=60, deadline={"date": DAY0, "time": "08:30"})])
     s = solve(p, now=NOW)
     assert s.status == "OPTIMAL"
     assert segs(s)[0].end <= f"{DAY0}T08:30"
@@ -94,10 +94,13 @@ def test_resource_conflict_serialises_tasks():
 def test_unavailable_unit_is_never_assigned():
     dates = [(NOW + timedelta(days=d)).date().isoformat() for d in range(14)]
     p = make_project(
-        [{
-            "name": "Rig", "count": 2,
-            "unavailable": {"Rig-1": {d: list(range(48)) for d in dates}},
-        }],
+        [
+            {
+                "name": "Rig",
+                "count": 2,
+                "unavailable": {"Rig-1": {d: list(range(48)) for d in dates}},
+            }
+        ],
         [make_task(minutes=120, work_hours_only=True, resources={"Rig": 1})],
     )
     s = solve(p, now=NOW)
@@ -108,7 +111,8 @@ def test_unavailable_unit_is_never_assigned():
 
 def test_holiday_pushes_work_to_next_day():
     p = make_project(
-        [], [make_task(minutes=120, work_hours_only=True)],
+        [],
+        [make_task(minutes=120, work_hours_only=True)],
         calendar={"holidays": [DAY0]},
     )
     s = solve(p, now=NOW)
@@ -118,7 +122,8 @@ def test_holiday_pushes_work_to_next_day():
 
 def test_custom_work_start_is_respected():
     p = make_project(
-        [], [make_task(minutes=120, work_hours_only=True)],
+        [],
+        [make_task(minutes=120, work_hours_only=True)],
         calendar={"work_start": "09:30", "work_end": "18:00"},
     )
     s = solve(p, now=NOW)
@@ -127,7 +132,8 @@ def test_custom_work_start_is_respected():
 
 def test_continue_next_day_splits_task():
     p = make_project(
-        [], [make_task(minutes=720, work_hours_only=True, continue_next_day=True)],
+        [],
+        [make_task(minutes=720, work_hours_only=True, continue_next_day=True)],
     )
     s = solve(p, now=NOW)  # 12 h into 10 h work days -> split across two days
     assert s.status == "OPTIMAL"
@@ -149,7 +155,8 @@ def test_too_long_for_single_day_reports_reason():
 def test_task_unavailable_slots_delay_start():
     # 07:00-09:00 painted unavailable (slots 14..17) -> task starts 09:00
     p = make_project(
-        [], [make_task(minutes=60, slots={DAY0: {str(x): "unavailable" for x in range(14, 18)}})],
+        [],
+        [make_task(minutes=60, slots={DAY0: {str(x): "unavailable" for x in range(14, 18)}})],
     )
     s = solve(p, now=NOW)
     assert segs(s)[0].start == f"{DAY0}T09:00"
@@ -162,8 +169,7 @@ def test_preferred_slots_win_within_makespan():
         [],
         [
             make_task(id="a", minutes=480),
-            make_task(id="b", minutes=60,
-                      slots={DAY0: {"20": "preferred", "21": "preferred"}}),
+            make_task(id="b", minutes=60, slots={DAY0: {"20": "preferred", "21": "preferred"}}),
         ],
     )
     s = solve(p, now=NOW)
@@ -190,9 +196,14 @@ def test_earliest_start_in_past_has_no_effect():
 
 def test_earliest_start_after_deadline_is_infeasible():
     p = make_project(
-        [], [make_task(minutes=120,
-                       earliest_start={"date": DAY0, "time": "10:00"},
-                       deadline={"date": DAY0, "time": "11:00"})]
+        [],
+        [
+            make_task(
+                minutes=120,
+                earliest_start={"date": DAY0, "time": "10:00"},
+                deadline={"date": DAY0, "time": "11:00"},
+            )
+        ],
     )
     s = solve(p, now=NOW)
     assert s.status == "INFEASIBLE"
@@ -202,10 +213,14 @@ def test_earliest_start_after_deadline_is_infeasible():
 def test_custom_unit_names_used_in_assignment():
     dates = [(NOW + timedelta(days=d)).date().isoformat() for d in range(14)]
     p = make_project(
-        [{
-            "name": "Rig", "count": 2, "unit_names": ["Alpha", "Beta"],
-            "unavailable": {"Alpha": {d: list(range(48)) for d in dates}},
-        }],
+        [
+            {
+                "name": "Rig",
+                "count": 2,
+                "unit_names": ["Alpha", "Beta"],
+                "unavailable": {"Alpha": {d: list(range(48)) for d in dates}},
+            }
+        ],
         [make_task(minutes=120, work_hours_only=True, resources={"Rig": 1})],
     )
     s = solve(p, now=NOW)
@@ -238,28 +253,33 @@ def test_empty_project_is_trivially_optimal():
 
 
 def test_dependency_orders_tasks():
-    p = make_project([], [
-        make_task(id="a", minutes=120),
-        make_task(id="b", minutes=60, depends_on=["a"]),
-    ])
+    p = make_project(
+        [],
+        [
+            make_task(id="a", minutes=120),
+            make_task(id="b", minutes=60, depends_on=["a"]),
+        ],
+    )
     s = solve(p, now=NOW)
     assert s.status == "OPTIMAL"
     assert segs(s, 1)[0].start_slot >= segs(s, 0)[-1].end_slot
 
 
 def test_dependency_cycle_is_detected():
-    p = make_project([], [
-        make_task(id="a", depends_on=["b"]),
-        make_task(id="b", depends_on=["a"]),
-    ])
+    p = make_project(
+        [],
+        [
+            make_task(id="a", depends_on=["b"]),
+            make_task(id="b", depends_on=["a"]),
+        ],
+    )
     s = solve(p, now=NOW)
     assert s.status == "INFEASIBLE"
     assert "Dependency cycle" in s.message
 
 
 def test_pinned_start_is_exact():
-    p = make_project([], [make_task(minutes=60,
-                                    pinned_start={"date": DAY0, "time": "10:00"})])
+    p = make_project([], [make_task(minutes=60, pinned_start={"date": DAY0, "time": "10:00"})])
     s = solve(p, now=NOW)  # a free task would otherwise start at 07:00
     assert s.status == "OPTIMAL"
     assert segs(s)[0].start == f"{DAY0}T10:00"
@@ -267,8 +287,16 @@ def test_pinned_start_is_exact():
 
 def test_impossible_pin_reports_reason():
     # pinned on a Saturday for a work-hours-only task
-    p = make_project([], [make_task(minutes=60, work_hours_only=True,
-                                    pinned_start={"date": "2026-07-11", "time": "10:00"})])
+    p = make_project(
+        [],
+        [
+            make_task(
+                minutes=60,
+                work_hours_only=True,
+                pinned_start={"date": "2026-07-11", "time": "10:00"},
+            )
+        ],
+    )
     s = solve(p, now=NOW)
     assert s.status == "INFEASIBLE"
     assert "pinned start" in s.message
@@ -286,10 +314,20 @@ def test_in_progress_task_is_frozen_to_previous_place():
         [make_task(id="a", minutes=120, resources={"Rig": 1}, status="in_progress")],
     )
     p.schedule = Schedule(
-        status="OPTIMAL", horizon_start=DAY0,
-        tasks=[ScheduledTask(task_id="a", task_name="Task", units=["Rig-2"], segments=[
-            ScheduleSegment(start=f"{DAY0}T09:00", end=f"{DAY0}T11:00",
-                            start_slot=18, end_slot=22)])],
+        status="OPTIMAL",
+        horizon_start=DAY0,
+        tasks=[
+            ScheduledTask(
+                task_id="a",
+                task_name="Task",
+                units=["Rig-2"],
+                segments=[
+                    ScheduleSegment(
+                        start=f"{DAY0}T09:00", end=f"{DAY0}T11:00", start_slot=18, end_slot=22
+                    )
+                ],
+            )
+        ],
     )
     s = solve(p, now=NOW)  # a pending task would be pulled forward to 07:00
     assert s.status == "OPTIMAL"
@@ -298,13 +336,24 @@ def test_in_progress_task_is_frozen_to_previous_place():
 
 
 def test_in_progress_task_finished_in_past_is_skipped():
-    p = make_project([], [make_task(id="a", minutes=60, status="in_progress"),
-                          make_task(id="b", minutes=60)])
+    p = make_project(
+        [], [make_task(id="a", minutes=60, status="in_progress"), make_task(id="b", minutes=60)]
+    )
     p.schedule = Schedule(
-        status="OPTIMAL", horizon_start="2026-07-05",
-        tasks=[ScheduledTask(task_id="a", task_name="T", units=[], segments=[
-            ScheduleSegment(start="2026-07-05T08:00", end="2026-07-05T09:00",
-                            start_slot=16, end_slot=18)])],
+        status="OPTIMAL",
+        horizon_start="2026-07-05",
+        tasks=[
+            ScheduledTask(
+                task_id="a",
+                task_name="T",
+                units=[],
+                segments=[
+                    ScheduleSegment(
+                        start="2026-07-05T08:00", end="2026-07-05T09:00", start_slot=16, end_slot=18
+                    )
+                ],
+            )
+        ],
     )
     s = solve(p, now=NOW)
     assert [x.task_id for x in s.tasks] == ["b"]
@@ -319,8 +368,7 @@ def _assert_no_double_booking(schedule):
     for u, intervals in by_unit.items():
         intervals.sort()
         for i in range(1, len(intervals)):
-            assert intervals[i][0] >= intervals[i - 1][1], \
-                f"unit {u} is double-booked: {intervals}"
+            assert intervals[i][0] >= intervals[i - 1][1], f"unit {u} is double-booked: {intervals}"
 
 
 def test_large_project_solves_without_double_booking():
@@ -334,12 +382,15 @@ def test_large_project_solves_without_double_booking():
     tasks = []
     for i in range(40):
         rtype = types[i % 3]
-        tasks.append(make_task(
-            id=f"t{i}", name=f"Task {i}",
-            minutes=60 + (i % 4) * 60,               # 1–4 h
-            work_hours_only=(i % 2 == 0),
-            resources={rtype: 1 + (i % 2 if rtype == "Rig" else 0)},  # some need 2 Rigs
-        ))
+        tasks.append(
+            make_task(
+                id=f"t{i}",
+                name=f"Task {i}",
+                minutes=60 + (i % 4) * 60,  # 1–4 h
+                work_hours_only=(i % 2 == 0),
+                resources={rtype: 1 + (i % 2 if rtype == "Rig" else 0)},  # some need 2 Rigs
+            )
+        )
     s = solve(make_project(equipment, tasks), now=NOW, time_limit_s=15.0)
     assert s.status in ("OPTIMAL", "FEASIBLE")
     assert len(s.tasks) == 40
@@ -351,10 +402,22 @@ def test_infeasible_hint_names_the_blocking_deadline():
     p = make_project(
         [{"name": "Rig", "count": 1}],
         [
-            make_task(id="a", name="Alpha", minutes=60, work_hours_only=True,
-                      resources={"Rig": 1}, deadline={"date": DAY0, "time": "09:00"}),
-            make_task(id="b", name="Beta", minutes=60, work_hours_only=True,
-                      resources={"Rig": 1}, deadline={"date": DAY0, "time": "09:00"}),
+            make_task(
+                id="a",
+                name="Alpha",
+                minutes=60,
+                work_hours_only=True,
+                resources={"Rig": 1},
+                deadline={"date": DAY0, "time": "09:00"},
+            ),
+            make_task(
+                id="b",
+                name="Beta",
+                minutes=60,
+                work_hours_only=True,
+                resources={"Rig": 1},
+                deadline={"date": DAY0, "time": "09:00"},
+            ),
         ],
     )
     s = solve(p, now=NOW)

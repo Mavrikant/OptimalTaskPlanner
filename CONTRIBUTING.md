@@ -6,8 +6,8 @@ development environment and the conventions we follow.
 ## Development setup
 
 ```bash
-git clone https://github.com/OWNER/labplanner.git
-cd labplanner
+git clone https://github.com/Mavrikant/LabPlanner.git
+cd LabPlanner
 python -m venv .venv
 # Windows: .venv\Scripts\activate    Linux/macOS: source .venv/bin/activate
 pip install -e .[dev]
@@ -25,10 +25,12 @@ Before opening a pull request, make sure both pass:
 
 ```bash
 ruff check .
+ruff format --check .
 pytest
 ```
 
-CI runs the same checks on Python 3.10 and 3.12.
+CI runs the same checks on Python 3.12, 3.13 and 3.14 on Ubuntu, plus Python 3.13
+on macOS and Windows.
 
 ## Guidelines
 

@@ -38,7 +38,7 @@ class WorkCalendar(BaseModel):
     """Project-wide working calendar, editable from the UI."""
 
     work_start: str = "08:00"  # HH:MM on a 30-minute boundary
-    work_end: str = "18:00"    # exclusive
+    work_end: str = "18:00"  # exclusive
     holidays: list[str] = Field(default_factory=list)  # ISO dates, treated as full days off
 
     @field_validator("work_start", "work_end")
@@ -98,8 +98,9 @@ class EquipmentType(BaseModel):
         if self.unit_names:
             if len(self.unit_names) != self.count:
                 raise ValueError("unit_names must have exactly `count` entries")
-            if any(not n for n in self.unit_names) or \
-                    len(set(self.unit_names)) != len(self.unit_names):
+            if any(not n for n in self.unit_names) or len(set(self.unit_names)) != len(
+                self.unit_names
+            ):
                 raise ValueError("unit_names must be unique and non-empty")
         return self
 
@@ -116,7 +117,7 @@ def equipment_units(eq: EquipmentType) -> list[str]:
 class TimePoint(BaseModel):
     """A point in time on the 30-minute grid (used for deadlines / earliest starts)."""
 
-    date: str          # ISO date, e.g. "2026-07-15"
+    date: str  # ISO date, e.g. "2026-07-15"
     time: str = "17:00"  # HH:MM on a 30-minute boundary
 
     @field_validator("date")
@@ -142,9 +143,9 @@ class Task(BaseModel):
     minutes: int = Field(ge=SLOT_MINUTES, le=MAX_TASK_MINUTES)
     work_hours_only: bool = False
     continue_next_day: bool = False
-    deadline: TimePoint | None = None          # task must END by this time
-    earliest_start: TimePoint | None = None    # task may not START before this time
-    pinned_start: TimePoint | None = None      # task must START exactly at this time
+    deadline: TimePoint | None = None  # task must END by this time
+    earliest_start: TimePoint | None = None  # task may not START before this time
+    pinned_start: TimePoint | None = None  # task must START exactly at this time
     depends_on: list[str] = Field(default_factory=list)  # ids of tasks that must end first
     # done -> excluded from solving; in_progress -> frozen to its last scheduled place
     status: Literal["pending", "in_progress", "done"] = "pending"
@@ -212,7 +213,7 @@ class Schedule(BaseModel):
 class SolverOptions(BaseModel):
     time_limit_s: int = Field(default=20, ge=5, le=120)
     workers: int = Field(default=8, ge=1, le=16)
-    days: int = Field(default=14, ge=1, le=31)   # rolling planning horizon length
+    days: int = Field(default=14, ge=1, le=31)  # rolling planning horizon length
 
 
 class Project(BaseModel):

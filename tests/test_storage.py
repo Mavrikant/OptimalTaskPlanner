@@ -71,10 +71,9 @@ def test_legacy_single_file_is_migrated_losslessly(tmp_path):
     data_dir.mkdir(parents=True)
     legacy_project = default_project("Legacy lab")
     raw = legacy_project.model_dump()
-    del raw["name"]            # pre-v2 files had neither field
+    del raw["name"]  # pre-v2 files had neither field
     del raw["schema_version"]
-    (data_dir / "project.json").write_text(
-        json.dumps(raw), encoding="utf-8")
+    (data_dir / "project.json").write_text(json.dumps(raw), encoding="utf-8")
 
     store = ProjectStore(data_dir)
     store.ensure_default()

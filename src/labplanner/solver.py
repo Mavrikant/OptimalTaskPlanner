@@ -67,9 +67,7 @@ def candidate_starts(
     blocked = {s for s in range(horizon) if slot_state(task, start, s) == "unavailable"}
     dl = deadline_slot(task, start)
     if dl is not None and dl <= now_slot:
-        return [], (
-            f"deadline {task.deadline.date} {task.deadline.time} is already in the past"
-        )
+        return [], (f"deadline {task.deadline.date} {task.deadline.time} is already in the past")
     es = earliest_start_slot(task, start)
     if es is not None:
         if es >= horizon:
@@ -114,8 +112,10 @@ def candidate_starts(
         else:
             n_days = horizon // SLOTS_PER_DAY
             day_len = max(
-                (sum(work[d * SLOTS_PER_DAY + s] for s in range(SLOTS_PER_DAY))
-                 for d in range(n_days)),
+                (
+                    sum(work[d * SLOTS_PER_DAY + s] for s in range(SLOTS_PER_DAY))
+                    for d in range(n_days)
+                ),
                 default=0,
             )
             if dur > day_len:
@@ -154,8 +154,10 @@ def candidate_starts(
                 "feasible start (check working hours, painted slots and the deadline)"
             )
     if not cands:
-        return [], ("no feasible start slot "
-                    "(check deadline, earliest start, unavailable hours and duration)")
+        return [], (
+            "no feasible start slot "
+            "(check deadline, earliest start, unavailable hours and duration)"
+        )
     return cands, ""
 
 
@@ -198,7 +200,7 @@ def _dependency_cycle(tasks: list[Task]) -> list[str] | None:
         stack.append(node)
         for nxt in graph[node]:
             if state.get(nxt) == 1:
-                return stack[stack.index(nxt):] + [nxt]
+                return stack[stack.index(nxt) :] + [nxt]
             if state.get(nxt, 0) == 0:
                 cycle = visit(nxt)
                 if cycle:
@@ -248,9 +250,7 @@ def precheck(project: Project) -> list[str]:
                 )
     cycle = _dependency_cycle(project.tasks)
     if cycle:
-        errors.append(
-            "Dependency cycle: " + " → ".join(names.get(i, i) for i in cycle)
-        )
+        errors.append("Dependency cycle: " + " → ".join(names.get(i, i) for i in cycle))
     return errors
 
 
@@ -261,8 +261,8 @@ def solve(
     time_limit_s: float = 20.0,
     explain: bool = True,
     workers: int = 8,
-    progress=None,   # optional callable(best_makespan_minutes) on each new solution
-    cancel=None,     # optional threading.Event; StopSearch() when set
+    progress=None,  # optional callable(best_makespan_minutes) on each new solution
+    cancel=None,  # optional threading.Event; StopSearch() when set
 ) -> Schedule:
     now = now or datetime.now()
     start = horizon_start(now)
@@ -326,13 +326,13 @@ def solve(
     n = len(tasks)
 
     # weights for lexicographic objective
-    w_prio_max = n * n * horizon + 1        # dominate priority term
-    w_pref = w_prio_max                     # per preferred slot
+    w_prio_max = n * n * horizon + 1  # dominate priority term
+    w_pref = w_prio_max  # per preferred slot
     total_dur = sum(t.duration_slots for t in tasks)
-    w_makespan = w_pref * (total_dur + 1)   # dominate preference term
+    w_makespan = w_pref * (total_dur + 1)  # dominate preference term
 
-    b = []          # b[t][j] candidate selected
-    x = []          # x[t] : dict slot -> BoolVar occupancy
+    b = []  # b[t][j] candidate selected
+    x = []  # x[t] : dict slot -> BoolVar occupancy
     start_exprs = []
     end_exprs = []
     obj_terms = []
@@ -434,6 +434,7 @@ def solve(
 
     callback = None
     if progress is not None or cancel is not None:
+
         class _Callback(cp_model.CpSolverSolutionCallback):
             def on_solution_callback(self):
                 if progress is not None:
@@ -442,6 +443,7 @@ def solve(
                         progress((self.Value(makespan) - now_slot) * SLOT_MINUTES)
                 if cancel is not None and cancel.is_set():
                     self.StopSearch()
+
         callback = _Callback()
 
     t0 = time.time()
@@ -491,9 +493,7 @@ def solve(
                     seg_start = s
             if s is not None:
                 prev = s
-        out.append(
-            ScheduledTask(task_id=t.id, task_name=t.name, units=units, segments=segments)
-        )
+        out.append(ScheduledTask(task_id=t.id, task_name=t.name, units=units, segments=segments))
 
     return Schedule(
         status="OPTIMAL" if status == cp_model.OPTIMAL else "FEASIBLE",
@@ -509,21 +509,36 @@ def solve(
 # Constraint families the infeasibility explainer tries to relax, in order:
 # (description with task name, description for the whole family, applies?, relax)
 _RELAX_FAMILIES = [
-    ("the deadline of task '{name}'", "all deadlines",
-     lambda t: t.deadline is not None,
-     lambda t: setattr(t, "deadline", None)),
-    ("the dependencies of task '{name}'", "all task dependencies",
-     lambda t: bool(t.depends_on),
-     lambda t: setattr(t, "depends_on", [])),
-    ("the earliest/pinned start of task '{name}'", "all earliest and pinned starts",
-     lambda t: t.earliest_start is not None or t.pinned_start is not None,
-     lambda t: (setattr(t, "earliest_start", None), setattr(t, "pinned_start", None))),
-    ("the unavailable slots painted on task '{name}'", "all painted task slots",
-     lambda t: bool(t.slots),
-     lambda t: setattr(t, "slots", {})),
-    ("the work-hours-only restriction of task '{name}'", "all work-hours-only restrictions",
-     lambda t: t.work_hours_only,
-     lambda t: setattr(t, "work_hours_only", False)),
+    (
+        "the deadline of task '{name}'",
+        "all deadlines",
+        lambda t: t.deadline is not None,
+        lambda t: setattr(t, "deadline", None),
+    ),
+    (
+        "the dependencies of task '{name}'",
+        "all task dependencies",
+        lambda t: bool(t.depends_on),
+        lambda t: setattr(t, "depends_on", []),
+    ),
+    (
+        "the earliest/pinned start of task '{name}'",
+        "all earliest and pinned starts",
+        lambda t: t.earliest_start is not None or t.pinned_start is not None,
+        lambda t: (setattr(t, "earliest_start", None), setattr(t, "pinned_start", None)),
+    ),
+    (
+        "the unavailable slots painted on task '{name}'",
+        "all painted task slots",
+        lambda t: bool(t.slots),
+        lambda t: setattr(t, "slots", {}),
+    ),
+    (
+        "the work-hours-only restriction of task '{name}'",
+        "all work-hours-only restrictions",
+        lambda t: t.work_hours_only,
+        lambda t: setattr(t, "work_hours_only", False),
+    ),
 ]
 
 
@@ -547,8 +562,7 @@ def explain_infeasible(
     def feasible(candidate: Project) -> bool:
         if time.time() - t0 > budget_s:
             raise TimeoutError
-        result = solve(candidate, days=days, now=now,
-                       time_limit_s=per_try_limit_s, explain=False)
+        result = solve(candidate, days=days, now=now, time_limit_s=per_try_limit_s, explain=False)
         return result.status in ("OPTIMAL", "FEASIBLE")
 
     try:
@@ -569,8 +583,9 @@ def explain_infeasible(
                 target = next(t for t in single.tasks if t.id == cand.id)
                 relax(target)
                 if feasible(single):
-                    hint = (f"Relaxing {task_msg.format(name=target.name)} "
-                            "makes the schedule feasible.")
+                    hint = (
+                        f"Relaxing {task_msg.format(name=target.name)} makes the schedule feasible."
+                    )
                     break
             hints.append(hint or f"Relaxing {family_msg} makes the schedule feasible.")
 

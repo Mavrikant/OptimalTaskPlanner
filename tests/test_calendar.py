@@ -27,7 +27,7 @@ def test_work_mask_default_hours():
     assert mask[36] is False
     # Saturday (day 5) fully off
     sat = 5 * SLOTS_PER_DAY
-    assert not any(mask[sat:sat + SLOTS_PER_DAY])
+    assert not any(mask[sat : sat + SLOTS_PER_DAY])
 
 
 def test_work_mask_respects_holidays_and_custom_start():
@@ -36,8 +36,8 @@ def test_work_mask_respects_holidays_and_custom_start():
     # Monday starts at 08:30 (slot 17)
     assert mask[16] is False
     assert mask[17] is True
-    assert mask[23] is True   # 11:30
+    assert mask[23] is True  # 11:30
     assert mask[24] is False  # 12:00 is exclusive
     # Tuesday 2026-07-07 is a holiday -> fully off
     tue = 1 * SLOTS_PER_DAY
-    assert not any(mask[tue:tue + SLOTS_PER_DAY])
+    assert not any(mask[tue : tue + SLOTS_PER_DAY])
