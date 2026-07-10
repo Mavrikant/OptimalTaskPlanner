@@ -8,6 +8,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import ValidationError
 
 from . import __version__, calendar_utils, solver
 from .config import Settings
@@ -20,7 +21,14 @@ STATIC_DIR = Path(__file__).parent / "static"
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or Settings.from_env()
     store = ProjectStore(settings.data_dir)
+    store.ensure_default()  # migrates the legacy single-file layout if present
     app = FastAPI(title="LabPlanner", version=__version__)
+
+    def load_or_404(pid: str) -> Project:
+        try:
+            return store.load(pid)
+        except FileNotFoundError as e:
+            raise HTTPException(status_code=404, detail=f"Unknown project: {pid}") from e
 
     def horizon_info(project: Project) -> dict:
         now = datetime.now()
@@ -63,19 +71,67 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def health() -> dict:
         return {"status": "ok", "version": __version__}
 
-    @app.get("/api/project")
-    def get_project() -> dict:
-        project = store.load()
+    # ---- project management -------------------------------------------------
+
+    @app.get("/api/projects")
+    def list_projects() -> dict:
+        return {"projects": store.list()}
+
+    @app.post("/api/projects")
+    def create_project(payload: dict | None = None) -> dict:
+        name = str((payload or {}).get("name") or "").strip() or "New project"
+        pid = store.create(name)
+        return {"id": pid, "name": name}
+
+    @app.post("/api/projects/import")
+    def import_project(payload: dict) -> dict:
+        try:
+            pid = store.import_data(payload)
+        except ValidationError as e:
+            raise HTTPException(status_code=422, detail=str(e)) from e
+        return {"id": pid, "name": store.load(pid).name}
+
+    @app.patch("/api/projects/{pid}")
+    def rename_project(pid: str, payload: dict) -> dict:
+        name = str(payload.get("name") or "").strip()
+        if not name:
+            raise HTTPException(status_code=422, detail="name must not be empty")
+        project = load_or_404(pid)
+        project.name = name
+        store.save(pid, project)
+        return {"ok": True, "name": name}
+
+    @app.delete("/api/projects/{pid}")
+    def delete_project(pid: str) -> dict:
+        try:
+            store.delete(pid)
+        except FileNotFoundError as e:
+            raise HTTPException(status_code=404, detail=f"Unknown project: {pid}") from e
+        return {"ok": True}
+
+    @app.post("/api/projects/{pid}/duplicate")
+    def duplicate_project(pid: str) -> dict:
+        load_or_404(pid)
+        new_pid = store.duplicate(pid)
+        return {"id": new_pid, "name": store.load(new_pid).name}
+
+    # ---- project data & solving ---------------------------------------------
+
+    @app.get("/api/projects/{pid}")
+    def get_project(pid: str) -> dict:
+        project = load_or_404(pid)
         return {"project": project.model_dump(), "horizon": horizon_info(project)}
 
-    @app.put("/api/project")
-    def put_project(project: Project) -> dict:
-        store.save(project)
+    @app.put("/api/projects/{pid}")
+    def put_project(pid: str, project: Project) -> dict:
+        if not store.exists(pid):
+            raise HTTPException(status_code=404, detail=f"Unknown project: {pid}")
+        store.save(pid, project)
         return {"ok": True, "horizon": horizon_info(project)}
 
-    @app.post("/api/solve")
-    def solve_now() -> dict:
-        project = store.load()
+    @app.post("/api/projects/{pid}/solve")
+    def solve_now(pid: str) -> dict:
+        project = load_or_404(pid)
         try:
             schedule = solver.solve(
                 project, days=settings.days, time_limit_s=settings.solver_time_limit_s
@@ -83,8 +139,25 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         except Exception as e:  # surface solver bugs as readable errors
             raise HTTPException(status_code=500, detail=str(e)) from e
         project.schedule = schedule
-        store.save(project)
+        store.save(pid, project)
         return {"schedule": schedule.model_dump(), "horizon": horizon_info(project)}
+
+    # ---- backups --------------------------------------------------------------
+
+    @app.get("/api/projects/{pid}/backups")
+    def list_backups(pid: str) -> dict:
+        try:
+            return {"backups": store.list_backups(pid)}
+        except FileNotFoundError as e:
+            raise HTTPException(status_code=404, detail=f"Unknown project: {pid}") from e
+
+    @app.post("/api/projects/{pid}/backups/{name}/restore")
+    def restore_backup(pid: str, name: str) -> dict:
+        try:
+            store.restore_backup(pid, name)
+        except FileNotFoundError as e:
+            raise HTTPException(status_code=404, detail=f"Unknown backup: {name}") from e
+        return {"ok": True}
 
     @app.get("/api/holidays/countries")
     def holiday_countries() -> dict:

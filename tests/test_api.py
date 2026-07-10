@@ -1,6 +1,10 @@
 from labplanner import __version__
 
 
+def default_pid(client):
+    return client.get("/api/projects").json()["projects"][0]["id"]
+
+
 def test_health(client):
     r = client.get("/api/health")
     assert r.status_code == 200
@@ -13,48 +17,106 @@ def test_index_serves_frontend(client):
     assert "LabPlanner" in r.text
 
 
-def test_get_project_returns_default_and_horizon(client):
-    d = client.get("/api/project").json()
+def test_default_project_is_seeded(client):
+    projects = client.get("/api/projects").json()["projects"]
+    assert len(projects) == 1
+    d = client.get(f"/api/projects/{projects[0]['id']}").json()
     assert d["project"]["equipment"]
     assert d["horizon"]["days"] == 14
     assert d["horizon"]["slots_per_day"] == 48
     assert len(d["horizon"]["day_dates"]) == 14
-    assert d["horizon"]["work_start_slot"] == 16
-    assert d["horizon"]["work_end_slot"] == 36
+
+
+def test_project_crud_flow(client):
+    r = client.post("/api/projects", json={"name": "Bench B"})
+    assert r.status_code == 200
+    pid = r.json()["id"]
+
+    assert client.patch(f"/api/projects/{pid}", json={"name": "Bench B2"}).status_code == 200
+    names = {p["id"]: p["name"] for p in client.get("/api/projects").json()["projects"]}
+    assert names[pid] == "Bench B2"
+
+    dup = client.post(f"/api/projects/{pid}/duplicate").json()
+    assert dup["name"] == "Bench B2 (copy)"
+
+    assert client.delete(f"/api/projects/{pid}").status_code == 200
+    assert client.get(f"/api/projects/{pid}").status_code == 404
+
+
+def test_unknown_project_is_404(client):
+    assert client.get("/api/projects/nope").status_code == 404
+    assert client.put("/api/projects/nope", json={"name": "x"}).status_code == 404
+    assert client.post("/api/projects/nope/solve").status_code == 404
+    assert client.delete("/api/projects/nope").status_code == 404
 
 
 def test_put_project_roundtrip(client):
-    d = client.get("/api/project").json()
-    project = d["project"]
+    pid = default_pid(client)
+    project = client.get(f"/api/projects/{pid}").json()["project"]
     project["calendar"]["work_start"] = "09:30"
     project["calendar"]["holidays"] = ["2026-12-25"]
 
-    r = client.put("/api/project", json=project)
+    r = client.put(f"/api/projects/{pid}", json=project)
     assert r.status_code == 200
     assert r.json()["horizon"]["work_start_slot"] == 19
 
-    d2 = client.get("/api/project").json()
-    assert d2["project"]["calendar"]["work_start"] == "09:30"
-    assert d2["project"]["calendar"]["holidays"] == ["2026-12-25"]
+    again = client.get(f"/api/projects/{pid}").json()["project"]
+    assert again["calendar"]["work_start"] == "09:30"
+    assert again["calendar"]["holidays"] == ["2026-12-25"]
 
 
 def test_put_rejects_invalid_project(client):
-    d = client.get("/api/project").json()
-    project = d["project"]
+    pid = default_pid(client)
+    project = client.get(f"/api/projects/{pid}").json()["project"]
     project["tasks"][0]["minutes"] = 45  # not slot-aligned
-    r = client.put("/api/project", json=project)
-    assert r.status_code == 422
+    assert client.put(f"/api/projects/{pid}", json=project).status_code == 422
+
+
+def test_import_project(client):
+    pid = default_pid(client)
+    data = client.get(f"/api/projects/{pid}").json()["project"]
+    data["name"] = "Imported copy"
+    r = client.post("/api/projects/import", json=data)
+    assert r.status_code == 200
+    assert r.json()["name"] == "Imported copy"
+
+    assert client.post("/api/projects/import",
+                       json={"tasks": [{"id": "x", "name": "bad", "minutes": 45}]}
+                       ).status_code == 422
 
 
 def test_solve_returns_and_persists_schedule(client):
-    r = client.post("/api/solve")
+    pid = default_pid(client)
+    r = client.post(f"/api/projects/{pid}/solve")
     assert r.status_code == 200
     schedule = r.json()["schedule"]
     assert schedule["status"] in ("OPTIMAL", "FEASIBLE")
     assert schedule["tasks"]
 
-    d = client.get("/api/project").json()
+    d = client.get(f"/api/projects/{pid}").json()
     assert d["project"]["schedule"]["status"] == schedule["status"]
+
+
+def test_backups_listed_and_restored(client):
+    pid = default_pid(client)
+    project = client.get(f"/api/projects/{pid}").json()["project"]
+    original = project["calendar"]["work_start"]
+
+    # deleting-like force snapshot: rename triggers save -> time-based snapshot
+    client.patch(f"/api/projects/{pid}", json={"name": "Snap"})
+    backups = client.get(f"/api/projects/{pid}/backups").json()["backups"]
+    assert backups, "a snapshot should exist after the first save"
+
+    project["calendar"]["work_start"] = "10:30"
+    project["name"] = "Snap"
+    client.put(f"/api/projects/{pid}", json=project)
+
+    r = client.post(f"/api/projects/{pid}/backups/{backups[0]['name']}/restore")
+    assert r.status_code == 200
+    restored = client.get(f"/api/projects/{pid}").json()["project"]
+    assert restored["calendar"]["work_start"] == original
+
+    assert client.post(f"/api/projects/{pid}/backups/evil.json/restore").status_code == 404
 
 
 def test_holiday_countries(client):

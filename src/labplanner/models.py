@@ -14,6 +14,8 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 SLOT_MINUTES = 30
 SLOTS_PER_DAY = 24 * 60 // SLOT_MINUTES  # 48
+# Bump when the on-disk project layout changes; add a matching storage.MIGRATIONS step.
+SCHEMA_VERSION = 2
 SLOT_STATES = ("preferred", "unavailable")
 # Generous upper bound; the solver checks durations against the actual horizon.
 MAX_TASK_MINUTES = 60 * 24 * 60
@@ -207,6 +209,8 @@ class Schedule(BaseModel):
 
 
 class Project(BaseModel):
+    name: str = "My lab"
+    schema_version: int = SCHEMA_VERSION
     calendar: WorkCalendar = Field(default_factory=WorkCalendar)
     equipment: list[EquipmentType] = Field(default_factory=list)
     tasks: list[Task] = Field(default_factory=list)  # order = priority (top first)
