@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import threading
+import time
+import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -129,18 +132,83 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         store.save(pid, project)
         return {"ok": True, "horizon": horizon_info(project)}
 
+    # Background solve jobs: the solver runs in a thread (OR-Tools releases the
+    # GIL) so the server stays responsive, reports progress and can be cancelled.
+    jobs: dict[str, dict] = {}
+    jobs_lock = threading.Lock()
+
+    def _prune_jobs() -> None:
+        cutoff = time.time() - 300  # keep terminal jobs 5 min for late polls
+        for jid in [j for j, v in jobs.items()
+                    if v["status"] != "running" and v["finished"] < cutoff]:
+            jobs.pop(jid, None)
+
     @app.post("/api/projects/{pid}/solve")
     def solve_now(pid: str) -> dict:
         project = load_or_404(pid)
-        try:
-            schedule = solver.solve(
-                project, days=settings.days, time_limit_s=settings.solver_time_limit_s
-            )
-        except Exception as e:  # surface solver bugs as readable errors
-            raise HTTPException(status_code=500, detail=str(e)) from e
-        project.schedule = schedule
-        store.save(pid, project)
-        return {"schedule": schedule.model_dump(), "horizon": horizon_info(project)}
+        job_id = uuid.uuid4().hex[:12]
+        cancel = threading.Event()
+        job = {
+            "id": job_id, "status": "running", "started": time.time(), "finished": 0.0,
+            "best_makespan_minutes": None, "schedule": None, "horizon": None,
+            "error": None, "cancel": cancel,
+        }
+        with jobs_lock:
+            _prune_jobs()
+            jobs[job_id] = job
+
+        def on_progress(mk: int) -> None:
+            job["best_makespan_minutes"] = mk
+
+        def run() -> None:
+            try:
+                schedule = solver.solve(
+                    project, days=settings.days,
+                    time_limit_s=settings.solver_time_limit_s,
+                    progress=on_progress, cancel=cancel,
+                )
+                if schedule.status == "CANCELLED":
+                    job["status"] = "cancelled"
+                else:
+                    project.schedule = schedule
+                    store.save(pid, project)
+                    job["schedule"] = schedule.model_dump()
+                    job["horizon"] = horizon_info(project)
+                    job["status"] = "done"
+            except Exception as e:  # surface solver bugs to the poller
+                job["error"] = str(e)
+                job["status"] = "error"
+            finally:
+                job["finished"] = time.time()
+
+        threading.Thread(target=run, daemon=True).start()
+        return {"job_id": job_id}
+
+    @app.get("/api/solve/{job_id}")
+    def solve_status(job_id: str) -> dict:
+        job = jobs.get(job_id)
+        if not job:
+            raise HTTPException(status_code=404, detail="Unknown solve job")
+        elapsed = (time.time() if job["status"] == "running" else job["finished"]) - job["started"]
+        out = {
+            "status": job["status"],
+            "elapsed_s": round(elapsed, 1),
+            "best_makespan_minutes": job["best_makespan_minutes"],
+        }
+        if job["status"] == "done":
+            out["schedule"] = job["schedule"]
+            out["horizon"] = job["horizon"]
+        elif job["status"] == "error":
+            out["error"] = job["error"]
+        return out
+
+    @app.post("/api/solve/{job_id}/cancel")
+    def solve_cancel(job_id: str) -> dict:
+        job = jobs.get(job_id)
+        if not job:
+            raise HTTPException(status_code=404, detail="Unknown solve job")
+        job["cancel"].set()
+        return {"ok": True}
 
     # ---- backups --------------------------------------------------------------
 

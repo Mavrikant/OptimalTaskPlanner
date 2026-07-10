@@ -85,16 +85,50 @@ def test_import_project(client):
                        ).status_code == 422
 
 
-def test_solve_returns_and_persists_schedule(client):
-    pid = default_pid(client)
-    r = client.post(f"/api/projects/{pid}/solve")
-    assert r.status_code == 200
-    schedule = r.json()["schedule"]
-    assert schedule["status"] in ("OPTIMAL", "FEASIBLE")
-    assert schedule["tasks"]
+def _solve_and_wait(client, pid, timeout=30.0):
+    import time as _time
+    job_id = client.post(f"/api/projects/{pid}/solve").json()["job_id"]
+    deadline = _time.monotonic() + timeout
+    while _time.monotonic() < deadline:
+        d = client.get(f"/api/solve/{job_id}").json()
+        if d["status"] != "running":
+            return job_id, d
+        _time.sleep(0.1)
+    raise AssertionError("solve did not finish in time")
 
-    d = client.get(f"/api/projects/{pid}").json()
-    assert d["project"]["schedule"]["status"] == schedule["status"]
+
+def test_solve_job_runs_and_persists_schedule(client):
+    pid = default_pid(client)
+    _job, d = _solve_and_wait(client, pid)
+    assert d["status"] == "done"
+    assert d["schedule"]["status"] in ("OPTIMAL", "FEASIBLE")
+    assert d["schedule"]["tasks"]
+    assert "horizon" in d
+
+    stored = client.get(f"/api/projects/{pid}").json()
+    assert stored["project"]["schedule"]["status"] == d["schedule"]["status"]
+
+
+def test_solve_status_unknown_job_is_404(client):
+    assert client.get("/api/solve/nope").status_code == 404
+    assert client.post("/api/solve/nope/cancel").status_code == 404
+
+
+def test_solve_cancel_is_accepted(client):
+    pid = default_pid(client)
+    job_id = client.post(f"/api/projects/{pid}/solve").json()["job_id"]
+    assert client.post(f"/api/solve/{job_id}/cancel").status_code == 200
+    # the job still reaches a terminal state (done if it already had a solution,
+    # or cancelled if stopped first)
+    import time as _time
+    deadline = _time.monotonic() + 30.0
+    while _time.monotonic() < deadline:
+        status = client.get(f"/api/solve/{job_id}").json()["status"]
+        if status != "running":
+            assert status in ("done", "cancelled")
+            return
+        _time.sleep(0.1)
+    raise AssertionError("cancelled solve did not settle")
 
 
 def test_backups_listed_and_restored(client):

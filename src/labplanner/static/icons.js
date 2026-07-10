@@ -17,6 +17,7 @@ const ICONS = {
     `<polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>`,
   play: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
     '<path d="M8 5v14l11-7z"/></svg>',
+  x: `${_S}<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
   eraser: `${_S}<path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6` +
     `c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>`,
   wand: `${_S}<path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 ` +

@@ -11,6 +11,7 @@ lexicographic via weights:
 
 from __future__ import annotations
 
+import contextlib
 import time
 from datetime import date, datetime, timedelta
 
@@ -259,6 +260,9 @@ def solve(
     now: datetime | None = None,
     time_limit_s: float = 20.0,
     explain: bool = True,
+    workers: int = 8,
+    progress=None,   # optional callable(best_makespan_minutes) on each new solution
+    cancel=None,     # optional threading.Event; StopSearch() when set
 ) -> Schedule:
     now = now or datetime.now()
     start = horizon_start(now)
@@ -426,12 +430,31 @@ def solve(
 
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = time_limit_s
-    solver.parameters.num_search_workers = 8
+    solver.parameters.num_search_workers = max(1, workers)
+
+    callback = None
+    if progress is not None or cancel is not None:
+        class _Callback(cp_model.CpSolverSolutionCallback):
+            def on_solution_callback(self):
+                if progress is not None:
+                    # progress reporting must never break the solve
+                    with contextlib.suppress(Exception):
+                        progress((self.Value(makespan) - now_slot) * SLOT_MINUTES)
+                if cancel is not None and cancel.is_set():
+                    self.StopSearch()
+        callback = _Callback()
+
     t0 = time.time()
-    status = solver.Solve(model)
+    status = solver.Solve(model, callback) if callback else solver.Solve(model)
     wall = time.time() - t0
 
     if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+        if cancel is not None and cancel.is_set():
+            return Schedule(
+                status="CANCELLED",
+                message="Solve cancelled before a schedule was found.",
+                horizon_start=start.date().isoformat(),
+            )
         message = (
             "No schedule satisfies all constraints together. Try relaxing deadlines, "
             "unavailable hours, equipment maintenance windows or resource demands."

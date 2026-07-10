@@ -1288,20 +1288,76 @@ function renderResRows(el, task) {
   };
 }
 
-/* ================= solve ================= */
-$("#btnSolve").onclick = async () => {
+/* ================= solve (async job + progress + cancel) ================= */
+let solveJob = null, solvePollTimer = null;
+
+function setSolveButton(running) {
   const btn = $("#btnSolve");
-  const label = btn.querySelector("span[data-i18n]");
-  btn.disabled = true; label.textContent = t("app.solving");
+  btn.querySelector("span[data-icon]").innerHTML = icon(running ? "x" : "play");
+  btn.querySelector("span[data-i18n]").textContent = t(running ? "sch.cancel" : "app.solve");
+  btn.classList.toggle("primary", !running);
+  btn.classList.toggle("danger", running);
+}
+
+function showSolveProgress(d) {
+  const st = $("#status");
+  let html = `<span class="badge">${esc(t("sch.solving", { elapsed: d.elapsed_s }))}</span>`;
+  if (d.best_makespan_minutes != null) {
+    html += `<span class="muted">${esc(t("sch.bestSoFar",
+      { makespan: fmtHours(d.best_makespan_minutes) }))}</span>`;
+  }
+  st.innerHTML = html;
+}
+
+function finishSolve() {
+  solveJob = null;
+  clearTimeout(solvePollTimer); solvePollTimer = null;
+  setSolveButton(false);
+}
+
+function pollSolve() {
+  solvePollTimer = setTimeout(async () => {
+    if (!solveJob) return;
+    let d;
+    try {
+      d = await api(`/api/solve/${solveJob}`);
+    } catch (e) {
+      toast(t("sch.solveFailed", { msg: e.message }), "error");
+      finishSolve(); renderSchedule(); return;
+    }
+    if (d.status === "running") {
+      showSolveProgress(d);
+      pollSolve();
+      return;
+    }
+    if (d.status === "done") {
+      project.schedule = d.schedule; horizon = d.horizon;
+    } else if (d.status === "cancelled") {
+      toast(t("sch.cancelled"));
+    } else if (d.status === "error") {
+      toast(t("sch.solveFailed", { msg: d.error || "" }), "error");
+    }
+    finishSolve();
+    renderSchedule();
+  }, 350);
+}
+
+$("#btnSolve").onclick = async () => {
+  if (solveJob) {                     // acting as Cancel while a solve runs
+    api(`/api/solve/${solveJob}/cancel`, { method: "POST" }).catch(() => {});
+    return;
+  }
   try {
     await saveNow(); // flush pending edits first
     const d = await api(`${P()}/solve`, { method: "POST" });
-    project.schedule = d.schedule; horizon = d.horizon;
+    solveJob = d.job_id;
+    setSolveButton(true);
     activateTab("schedule");
+    showSolveProgress({ elapsed_s: 0, best_makespan_minutes: null });
+    pollSolve();
   } catch (e) {
     toast(t("sch.solveFailed", { msg: e.message }), "error");
-  } finally {
-    btn.disabled = false; label.textContent = t("app.solve");
+    finishSolve();
   }
 };
 
