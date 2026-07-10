@@ -1397,7 +1397,7 @@ function buildGanttSVG(forExport) {
   const W = Math.round(LEFT + HS * pxs + 12), H = TOP + units.length * ROW + 12;
   const sc = project.schedule;
   let s = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" ` +
-    `font-family="Segoe UI,system-ui,sans-serif" font-size="11">`;
+    `viewBox="0 0 ${W} ${H}" font-family="Segoe UI,system-ui,sans-serif" font-size="11">`;
   // day bands
   for (let d = 0; d < horizon.days; d++) {
     const x = LEFT + d * SPD * pxs;
@@ -1578,7 +1578,7 @@ $("#btnExport").onclick = e => {
   if (!list.hidden) { closeExportList(); return; }
   list.innerHTML = "";
   [["download", "sch.export", exportHTML],
-   ["sheet", "sch.exportCsv", exportCSV],
+   ["sheet", "sch.exportXlsx", exportXLSX],
    ["calendar", "sch.exportIcs", exportICS]].forEach(([ic, key, fn]) => {
     const b = document.createElement("button");
     b.className = "export-item"; b.setAttribute("role", "menuitem");
@@ -1597,10 +1597,8 @@ document.addEventListener("click", e => {
   if (!e.target.closest("#exportMenu")) closeExportList();
 });
 
-function exportCSV() {
-  const sc = project.schedule; if (!sc || !sc.tasks.length) return;
-  const q = v => `"${String(v).replace(/"/g, '""')}"`;
-  const header = [t("sch.colTask"), t("sch.colStart"), t("sch.colEnd"), t("sch.colDuration"),
+function scheduleTable() {
+  const columns = [t("sch.colTask"), t("sch.colStart"), t("sch.colEnd"), t("sch.colDuration"),
     t("sch.colUnits"), t("sch.colDeadline"), t("sch.colStatus")];
   const rows = scheduleRows().sort((a, b) => a.start < b.start ? -1 : 1).map(r => [
     r.stt.task_name,
@@ -1611,9 +1609,23 @@ function exportCSV() {
     r.task && r.task.deadline ? `${r.task.deadline.date} ${r.task.deadline.time}` : "",
     r.deadline == null ? "" : (r.met ? t("sch.onTime") : t("sch.late")),
   ]);
-  const csv = "\ufeff" +  // BOM so Excel opens UTF-8 correctly
-    [header, ...rows].map(row => row.map(q).join(",")).join("\r\n") + "\r\n";
-  downloadBlob(csv, "text/csv;charset=utf-8", `labplanner-schedule-${exportStamp()}.csv`);
+  return { columns, rows };
+}
+
+async function exportXLSX() {
+  const sc = project.schedule; if (!sc || !sc.tasks.length) return;
+  const { columns, rows } = scheduleTable();
+  const safe = (project.name || "schedule").replace(/[^\w-]+/g, "_");
+  const filename = `labplanner-${safe}-${exportStamp()}.xlsx`;
+  try {
+    const resp = await fetch("/api/export/xlsx", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ filename, sheet_name: project.name || "Schedule", columns, rows }),
+    });
+    if (!resp.ok) throw new Error(await resp.text());
+    downloadBlob(await resp.blob(),
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", filename);
+  } catch (e) { toast(e.message, "error"); }
 }
 
 function exportICS() {
@@ -1646,6 +1658,9 @@ function exportICS() {
 function exportHTML() {
   const sc = project.schedule; if (!sc || !sc.tasks.length) return;
   const svg = buildGanttSVG(true);
+  const m = svg.match(/width="(\d+(?:\.\d+)?)" height="(\d+(?:\.\d+)?)"/);
+  const W = m ? Math.round(parseFloat(m[1])) : 1200;
+  const H = m ? Math.round(parseFloat(m[2])) : 600;
   const cols = ["#", "sch.colTask", "sch.colStart", "sch.colEnd", "sch.colDuration",
     "sch.colUnits", "sch.colDeadline", "sch.colStatus"]
     .map(k => `<th>${k === "#" ? "#" : esc(t(k))}</th>`).join("");
@@ -1653,19 +1668,39 @@ function exportHTML() {
   tmp.innerHTML = $("#detailsTable tbody").innerHTML;
   tmp.querySelectorAll("tr").forEach(row => row.lastElementChild.remove()); // drop pin column
   const body = tmp.innerHTML;
+  const zbtn = (ic, key, fn) =>
+    `<button onclick="${fn}" title="${esc(t(key))}" aria-label="${esc(t(key))}">${icon(ic)}</button>`;
   const css = `
     body{font:14px/1.5 "Segoe UI",system-ui,sans-serif;color:#101828;margin:24px;background:#fff}
     h1{font-size:20px;margin:0 0 4px} h2{font-size:15px;margin:22px 0 8px}
     .meta{color:#667085;font-size:12px;margin-bottom:14px}
-    .gantt{overflow-x:auto;border:1px solid #e3e7ee;border-radius:8px}
+    .toolbar{display:flex;gap:6px;margin-bottom:8px}
+    .toolbar button{display:inline-flex;align-items:center;justify-content:center;width:32px;
+      height:32px;border:1px solid #c9d1dc;border-radius:8px;background:#fff;cursor:pointer;color:#101828}
+    .toolbar button:hover{background:#f4f6fa}
+    .toolbar svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;
+      stroke-linecap:round;stroke-linejoin:round}
+    .toolbar .hint{align-self:center;color:#667085;font-size:12px;margin-left:6px}
+    .gantt{overflow:auto;border:1px solid #e3e7ee;border-radius:8px;max-height:72vh}
+    .gantt svg{display:block}
     table{border-collapse:collapse;width:100%;font-size:13px}
     th,td{text-align:left;padding:7px 10px;border-bottom:1px solid #e3e7ee;white-space:nowrap}
     th{font-size:11px;color:#667085;text-transform:uppercase;letter-spacing:.05em}
     .task-color{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:7px}
     .ok{color:#16a34a;font-weight:600}.bad{color:#dc2626;font-weight:600}.muted{color:#667085}
-    @media print{.gantt{border:none}}`;
+    @media print{.toolbar{display:none}.gantt{border:none;max-height:none;overflow:visible}}`;
+  const js = `(function(){
+    var W=${W},H=${H},z=1;
+    var svg=document.querySelector('.gantt svg'),box=document.querySelector('.gantt');
+    function ap(){svg.setAttribute('width',Math.round(W*z));svg.setAttribute('height',Math.round(H*z));}
+    window.zb=function(f){z=Math.min(8,Math.max(0.3,z*f));ap();};
+    window.zfit=function(){z=Math.min(8,Math.max(0.2,(box.clientWidth-2)/W));ap();};
+    box.addEventListener('wheel',function(e){if(e.ctrlKey||e.metaKey){e.preventDefault();zb(e.deltaY<0?1.1:1/1.1);}},{passive:false});
+    zfit();window.addEventListener('resize',zfit);
+  })();`;
   const html = `<!DOCTYPE html>
 <html lang="${LANG}"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(t("sch.exportTitle"))} — ${esc(sc.horizon_start || "")}</title>
 <style>${css}</style></head><body>
 <h1>${esc(t("sch.exportTitle"))}</h1>
@@ -1674,9 +1709,16 @@ function exportHTML() {
     from: sc.horizon_start ? fmtDateLong(sc.horizon_start) : "",
   }))}
  · ${esc(t("sch.exportedAt", { at: fmtDT(new Date()) }))}</div>
+<div class="toolbar">
+  ${zbtn("zoomOut", "sch.zoomOut", "zb(1/1.4)")}
+  ${zbtn("fit", "sch.zoomFit", "zfit()")}
+  ${zbtn("zoomIn", "sch.zoomIn", "zb(1.4)")}
+  <span class="hint">${esc(t("sch.zoomHint"))}</span>
+</div>
 <div class="gantt">${svg}</div>
 <h2>${esc(t("sch.details"))}</h2>
 <table><thead><tr>${cols}</tr></thead><tbody>${body}</tbody></table>
+<script>${js}</script>
 </body></html>`;
   downloadBlob(html, "text/html", `labplanner-schedule-${exportStamp()}.html`);
 }

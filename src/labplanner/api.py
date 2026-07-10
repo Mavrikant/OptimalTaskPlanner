@@ -6,16 +6,24 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
-from pydantic import ValidationError
+from pydantic import BaseModel, Field, ValidationError
 
-from . import __version__, calendar_utils, solver
+from . import __version__, calendar_utils, export_xlsx, solver
 from .config import Settings
 from .models import SLOTS_PER_DAY, Project
 from .storage import ProjectStore
 
 STATIC_DIR = Path(__file__).parent / "static"
+XLSX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+
+class XlsxExport(BaseModel):
+    filename: str = "export.xlsx"
+    sheet_name: str = "Sheet1"
+    columns: list[str] = Field(default_factory=list)
+    rows: list[list] = Field(default_factory=list)
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -158,6 +166,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         except FileNotFoundError as e:
             raise HTTPException(status_code=404, detail=f"Unknown backup: {name}") from e
         return {"ok": True}
+
+    # ---- exports --------------------------------------------------------------
+
+    @app.post("/api/export/xlsx")
+    def export_to_xlsx(payload: XlsxExport) -> Response:
+        data = export_xlsx.build_workbook(payload.columns, payload.rows, payload.sheet_name)
+        safe = Path(payload.filename).name or "export.xlsx"
+        if not safe.lower().endswith(".xlsx"):
+            safe += ".xlsx"
+        return Response(
+            content=data,
+            media_type=XLSX_MEDIA_TYPE,
+            headers={"Content-Disposition": f'attachment; filename="{safe}"'},
+        )
 
     @app.get("/api/holidays/countries")
     def holiday_countries() -> dict:

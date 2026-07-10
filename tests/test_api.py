@@ -119,6 +119,33 @@ def test_backups_listed_and_restored(client):
     assert client.post(f"/api/projects/{pid}/backups/evil.json/restore").status_code == 404
 
 
+def test_export_xlsx_roundtrips(client):
+    from io import BytesIO
+
+    from openpyxl import load_workbook
+
+    payload = {
+        "filename": "sched",
+        "sheet_name": "Schedule",
+        "columns": ["Task", "Start", "Duration"],
+        "rows": [["RF sweep", "2026-07-13 08:00", 4], ["Soak", "2026-07-14 09:00", 36]],
+    }
+    r = client.post("/api/export/xlsx", json=payload)
+    assert r.status_code == 200
+    assert r.headers["content-type"].startswith(
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    assert r.headers["content-disposition"].endswith('filename="sched.xlsx"')
+
+    wb = load_workbook(BytesIO(r.content))
+    ws = wb.active
+    assert ws.title == "Schedule"
+    assert [c.value for c in ws[1]] == ["Task", "Start", "Duration"]
+    assert ws["A2"].value == "RF sweep"
+    assert ws["C2"].value == 4  # numbers stay numeric
+    assert ws.freeze_panes == "A2"
+
+
 def test_holiday_countries(client):
     d = client.get("/api/holidays/countries").json()
     codes = {c["code"] for c in d["countries"]}

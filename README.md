@@ -33,7 +33,8 @@ a small FastAPI backend plus a dependency-free vanilla-JS frontend.
   holidays: pick dates manually or auto-fill any country's official holidays
   (via the [`holidays`](https://pypi.org/project/holidays/) package).
 - **Full-screen schedule view** — zoomable SVG Gantt with rich hover tooltips, a start/end
-  details table, and exports to a self-contained HTML report, CSV, or an ICS calendar.
+  details table, and exports to an interactive self-contained HTML report, an Excel
+  workbook, or an ICS calendar.
 - **Bilingual UI with dark mode** — English and Turkish out of the box; adding a language
   is one JSON file. Keyboard- and touch-friendly (focus traps, ARIA roles, pointer-event
   painting).

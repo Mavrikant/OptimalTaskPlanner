@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   public holidays with manual selection or country-based auto-fill.
 - Bilingual web UI (English/Turkish) with modals, toasts and a paintable slot grid.
 - Full-screen schedule view: zoomable SVG Gantt with rich hover tooltips, a
-  start/end details table, and HTML / CSV / ICS exports.
+  start/end details table, and interactive HTML / Excel (.xlsx) / ICS exports.
 - Dark mode, first-visit onboarding tour, per-section help screens,
   JSON-based locales, keyboard and touch accessibility.
 - Multiple projects (create, rename, duplicate, import/export, delete) with a
