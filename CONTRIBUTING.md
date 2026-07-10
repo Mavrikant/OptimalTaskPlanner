@@ -1,0 +1,48 @@
+# Contributing to LabPlanner
+
+Thanks for your interest in contributing! This document describes how to set up a
+development environment and the conventions we follow.
+
+## Development setup
+
+```bash
+git clone https://github.com/OWNER/labplanner.git
+cd labplanner
+python -m venv .venv
+# Windows: .venv\Scripts\activate    Linux/macOS: source .venv/bin/activate
+pip install -e .[dev]
+```
+
+Run the app locally:
+
+```bash
+labplanner --reload
+```
+
+## Quality checks
+
+Before opening a pull request, make sure both pass:
+
+```bash
+ruff check .
+pytest
+```
+
+CI runs the same checks on Python 3.10 and 3.12.
+
+## Guidelines
+
+- Keep the backend in English (code, comments, error messages).
+- Every user-visible frontend string must go through the i18n layer
+  (`src/labplanner/static/i18n.js`) with both `en` and `tr` translations.
+- The solver (`solver.py`) must stay deterministic under an injected `now`
+  timestamp — that is what makes it testable. Add a test for any solver change.
+- Prefer small, focused pull requests with a clear description.
+
+## Reporting bugs
+
+Open a GitHub issue with:
+
+- what you did, what you expected, and what happened,
+- your `data/project.json` if the problem is solver-related (redact names if needed),
+- Python version and OS.
