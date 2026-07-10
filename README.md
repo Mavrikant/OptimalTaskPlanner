@@ -24,8 +24,10 @@ a small FastAPI backend plus a dependency-free vanilla-JS frontend.
   *preferred*/*unavailable* painting, drag-to-reorder priorities.
 - **Re-planning aware** — mark tasks done or in-progress: the solver drops finished work
   and freezes running tasks on their current units and times while re-planning the rest.
-  When nothing fits, an infeasibility hint names one constraint whose relaxation would
-  make the schedule feasible.
+  When nothing fits, the solver returns ranked hints naming which constraints to relax.
+- **Responsive at scale** — solves run as cancellable background jobs with live progress
+  (elapsed time and best makespan so far); the conflict model is pruned so large projects
+  stay solvable. Time limit, parallel workers and horizon length are per-project settings.
 - **Equipment pool with per-unit availability** — mark an individual unit (e.g. `VSG-1`)
   as under maintenance and the solver will never assign it during that window. Units can
   carry custom names (serial numbers, brands) instead of automatic numbering.
@@ -79,11 +81,12 @@ Server-level settings come from CLI flags or environment variables:
 | `--host`     | `LABPLANNER_HOST`             | `127.0.0.1` | Bind address                    |
 | `--port`     | `LABPLANNER_PORT`             | `8000`      | Port                            |
 | `--data-dir` | `LABPLANNER_DATA_DIR`         | `./data`    | Where projects & backups live   |
-| `--days`     | `LABPLANNER_DAYS`             | `14`        | Planning horizon length in days |
-| —            | `LABPLANNER_SOLVER_TIME_LIMIT`| `20`        | CP-SAT time limit (seconds)     |
+| `--days`     | `LABPLANNER_DAYS`             | `14`        | Default horizon length for new projects |
+| —            | `LABPLANNER_SOLVER_TIME_LIMIT`| `20`        | Default CP-SAT time limit for new projects (seconds) |
 
-Working hours and holidays are *project* settings — edit them in the UI; they live in
-`project.json` alongside your tasks.
+Horizon length, CP-SAT time limit and parallel workers are *project* settings (gear icon
+next to **Solve**); new projects inherit the CLI/env defaults above. Working hours and
+holidays are project settings too — everything lives in each project's JSON file.
 
 ## REST API
 
@@ -100,7 +103,9 @@ The UI talks to a small JSON API you can also use directly
 | `POST /api/projects/{id}/duplicate` | Duplicate                           |
 | `GET /api/projects/{id}` | Project data + horizon info                    |
 | `PUT /api/projects/{id}` | Replace project data (validated)               |
-| `POST /api/projects/{id}/solve` | Solve and persist the schedule          |
+| `POST /api/projects/{id}/solve` | Start a background solve, returns `{job_id}` |
+| `GET /api/solve/{job_id}` | Solve status, progress and result when done   |
+| `POST /api/solve/{job_id}/cancel` | Cancel a running solve (keeps best found) |
 | `GET /api/projects/{id}/backups` | List automatic backup snapshots        |
 | `POST /api/projects/{id}/backups/{name}/restore` | Restore a snapshot     |
 | `GET /api/holidays/countries` | Countries supported for holiday auto-fill |

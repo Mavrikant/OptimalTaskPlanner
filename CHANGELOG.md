@@ -28,6 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   JSON-based locales, keyboard and touch accessibility.
 - Multiple projects (create, rename, duplicate, import/export, delete) with a
   header switcher; snapshot-based undo/redo (Ctrl+Z/Y).
+- Solving runs as a cancellable background job with live progress (elapsed time
+  and best makespan so far); the unit-conflict model is pruned so large projects
+  stay solvable. Per-project solver settings (time limit, workers, horizon days)
+  and ranked infeasibility hints.
 - Automatic backup snapshots with in-app restore; schema-versioned data files
   with a forward-migration chain (the legacy single project.json migrates
   losslessly on first start).
