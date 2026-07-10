@@ -44,6 +44,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "holiday_flags": [d in holidays_set for d in day_dates],
         }
 
+    @app.middleware("http")
+    async def revalidate_static(request, call_next):
+        # ETag/Last-Modified make revalidation cheap (304); heuristic caching would
+        # otherwise keep serving stale frontend assets after an upgrade.
+        response = await call_next(request)
+        if request.url.path == "/" or request.url.path.startswith("/static"):
+            response.headers["Cache-Control"] = "no-cache"
+        return response
+
     @app.get("/", include_in_schema=False)
     def index() -> FileResponse:
         return FileResponse(STATIC_DIR / "index.html")

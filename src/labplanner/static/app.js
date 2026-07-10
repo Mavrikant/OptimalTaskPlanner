@@ -593,10 +593,20 @@ function renderTaskList() {
   project.tasks.forEach((task, i) => {
     const li = document.createElement("li");
     li.draggable = true; li.dataset.id = task.id;
-    li.className = task.id === selectedId ? "selected" : "";
+    li.className = (task.id === selectedId ? "selected" : "") +
+      (task.status === "done" ? " done" : "");
+    const badges =
+      (task.status === "in_progress"
+        ? `<span class="badge-mini run" title="${esc(t("status.in_progress"))}">${icon("play")}</span>` : "") +
+      (task.status === "done"
+        ? `<span class="badge-mini fin" title="${esc(t("status.done"))}">${icon("check")}</span>` : "") +
+      (task.depends_on && task.depends_on.length
+        ? `<span class="badge-mini dep" title="${esc(t("tasks.dependsOn"))}">${icon("link")}</span>` : "") +
+      (task.pinned_start
+        ? `<span class="badge-mini pinb" title="${esc(t("tasks.pinnedStart"))}">${icon("pin")}</span>` : "");
     li.innerHTML = `<span class="drag">${icon("grip")}</span>
       <span class="prio">${i + 1}.</span>
-      <span class="tname">${esc(task.name)}</span>
+      <span class="tname">${esc(task.name)}</span>${badges}
       <span class="thours">${fmtHours(task.minutes)}</span>`;
     li.onclick = () => { selectedId = task.id; renderTaskList(); renderEditor(); };
     li.ondragstart = e => {
@@ -622,7 +632,8 @@ $("#btnAddTask").onclick = () => {
   const task = {
     id: uuid(), name: t("tasks.newName"), minutes: 120,
     work_hours_only: false, continue_next_day: false,
-    deadline: null, earliest_start: null, resources: {}, slots: {},
+    deadline: null, earliest_start: null, pinned_start: null,
+    depends_on: [], status: "pending", resources: {}, slots: {},
   };
   project.tasks.push(task); selectedId = task.id;
   markSave(); renderTaskList(); renderEditor();
@@ -631,6 +642,7 @@ $("#btnDupTask").onclick = () => {
   const task = selTask(); if (!task) return;
   const copy = JSON.parse(JSON.stringify(task));
   copy.id = uuid(); copy.name = `${task.name} ${t("tasks.copySuffix")}`;
+  copy.status = "pending";
   project.tasks.splice(project.tasks.indexOf(task) + 1, 0, copy);
   selectedId = copy.id;
   markSave(); renderTaskList(); renderEditor();
@@ -640,6 +652,11 @@ $("#btnDelTask").onclick = async () => {
   if (!await confirmModal(t("tasks.delete"), t("tasks.deleteConfirm", { name: task.name }))) return;
   const i = project.tasks.indexOf(task);
   project.tasks.splice(i, 1);
+  project.tasks.forEach(x => {   // drop dangling dependency references
+    if (x.depends_on && x.depends_on.includes(task.id)) {
+      x.depends_on = x.depends_on.filter(d => d !== task.id);
+    }
+  });
   selectedId = project.tasks.length
     ? project.tasks[Math.min(i, project.tasks.length - 1)].id : null;
   markSave(); renderTaskList(); renderEditor();
@@ -664,6 +681,23 @@ function renderEditor() {
   const esSlot = es ? hhmmSlot(es.time) : hhmmSlot(project.calendar.work_start);
   const esTimeOpts = Array.from({ length: 49 }, (_, s) =>
     `<option value="${s}" ${s === esSlot ? "selected" : ""}>${slotHHMM(s)}</option>`).join("");
+  const pin = task.pinned_start;
+  const pinDateOpts = horizon.day_dates.map((d, i) =>
+    `<option value="${d}" ${pin && pin.date === d ? "selected" : ""}>
+       ${dayLabelLong(i)} (${d})</option>`).join("");
+  const pinSlot = pin ? hhmmSlot(pin.time) : hhmmSlot(project.calendar.work_start);
+  const pinTimeOpts = Array.from({ length: 49 }, (_, s) =>
+    `<option value="${s}" ${s === pinSlot ? "selected" : ""}>${slotHHMM(s)}</option>`).join("");
+  const statusOpts = ["pending", "in_progress", "done"].map(v =>
+    `<option value="${v}" ${task.status === v ? "selected" : ""}>${t("status." + v)}</option>`)
+    .join("");
+  const others = project.tasks.filter(x => x.id !== task.id);
+  const depsHtml = others.length
+    ? others.map(x =>
+      `<label class="check"><input type="checkbox" data-dep="${x.id}"
+         ${task.depends_on && task.depends_on.includes(x.id) ? "checked" : ""}>
+         ${esc(x.name)}</label>`).join("")
+    : `<span class="muted small">${t("tasks.noDeps")}</span>`;
   const maxHours = horizon.horizon_slots / 2;
 
   el.innerHTML = `
@@ -673,6 +707,8 @@ function renderEditor() {
     <div class="field"><label>${t("tasks.duration")}</label>
       <input type="number" id="fHours" min="0.5" max="${maxHours}" step="0.5"
              value="${task.minutes / 60}"></div>
+    <div class="field"><label>${t("tasks.status")}</label>
+      <select id="fStatus">${statusOpts}</select></div>
   </div>
   <div class="row wrap" style="margin-bottom:14px">
     <label class="check"><input type="checkbox" id="fWho" ${task.work_hours_only ? "checked" : ""}>
@@ -695,6 +731,17 @@ function renderEditor() {
     <select id="fDlTime" ${task.deadline ? "" : "disabled"}>${dlTimeOpts}</select>
     <span class="muted small">${t("tasks.deadlineHint")}</span>
   </div>
+  <div class="row wrap" style="margin-bottom:14px">
+    <label class="check"><input type="checkbox" id="fPinOn" ${pin ? "checked" : ""}>
+      ${t("tasks.pinnedStart")}</label>
+    <select id="fPinDate" ${pin ? "" : "disabled"}>${pinDateOpts}</select>
+    <select id="fPinTime" ${pin ? "" : "disabled"}>${pinTimeOpts}</select>
+    <span class="muted small">${t("tasks.pinnedHint")}</span>
+  </div>
+  <fieldset><legend>${t("tasks.dependsOn")}</legend>
+    <div class="deps-list" id="depsList">${depsHtml}</div>
+    <div class="muted small">${t("tasks.dependsHint")}</div>
+  </fieldset>
   <fieldset><legend>${t("tasks.resources")}</legend>
     <table id="resTable"><tbody></tbody></table>
     <button id="btnAddRes" class="btn icon small accent" style="margin-top:8px"
@@ -770,6 +817,38 @@ function renderEditor() {
     markSave();
   };
   ["fEsOn", "fEsDate", "fEsTime"].forEach(id => { el.querySelector("#" + id).onchange = esSync; });
+  const pinSync = () => {
+    if (el.querySelector("#fPinOn").checked) {
+      task.pinned_start = {
+        date: el.querySelector("#fPinDate").value,
+        time: slotHHMM(parseInt(el.querySelector("#fPinTime").value, 10)),
+      };
+    } else {
+      task.pinned_start = null;
+    }
+    el.querySelector("#fPinDate").disabled = !task.pinned_start;
+    el.querySelector("#fPinTime").disabled = !task.pinned_start;
+    markSave(); renderTaskList();
+  };
+  ["fPinOn", "fPinDate", "fPinTime"].forEach(id => {
+    el.querySelector("#" + id).onchange = pinSync;
+  });
+  el.querySelector("#fStatus").onchange = e => {
+    task.status = e.target.value;
+    markSave(); renderTaskList();
+  };
+  el.querySelectorAll("#depsList input[data-dep]").forEach(cb => {
+    cb.onchange = () => {
+      const id = cb.dataset.dep;
+      task.depends_on = task.depends_on || [];
+      if (cb.checked) {
+        if (!task.depends_on.includes(id)) task.depends_on.push(id);
+      } else {
+        task.depends_on = task.depends_on.filter(d => d !== id);
+      }
+      markSave(); renderTaskList();
+    };
+  });
 
   renderResRows(el, task);
   buildSlotGrid(el.querySelector("#taskGridWrap"), {
@@ -1071,12 +1150,29 @@ function renderDetailsTable() {
       r.met ? `<span class="ok">✓ ${esc(t("sch.onTime"))}</span>` :
         `<span class="bad">✗ ${esc(t("sch.late"))}</span>`;
     const tr = document.createElement("tr");
+    const isPinnedHere = r.task && r.task.pinned_start &&
+      r.task.pinned_start.date === r.start.slice(0, 10) &&
+      r.task.pinned_start.time === r.start.slice(11, 16);
     tr.innerHTML = `<td>${r.prio || "—"}</td>
       <td><span class="task-color" style="background:${PALETTE[r.ti % PALETTE.length]}"></span>${esc(r.stt.task_name)}</td>
       <td>${fmtDT(r.start)}</td><td>${fmtDT(r.end)}</td>
       <td>${fmtHours(r.minutes)}</td>
       <td>${r.stt.units.map(esc).join(", ")}</td>
-      <td>${dl}</td><td>${status}</td>`;
+      <td>${dl}</td><td>${status}</td>
+      <td>${r.task ? iconBtn("pin", "sch.pinHere", isPinnedHere ? "accent" : "") : ""}</td>`;
+    const pinBtn = tr.querySelector("td:last-child .btn");
+    if (pinBtn) {
+      pinBtn.onclick = () => {
+        if (isPinnedHere) {
+          r.task.pinned_start = null;
+          toast(t("sch.unpinned"));
+        } else {
+          r.task.pinned_start = { date: r.start.slice(0, 10), time: r.start.slice(11, 16) };
+          toast(t("sch.pinned"), "success");
+        }
+        markSave(); renderTaskList(); renderEditor(); renderDetailsTable();
+      };
+    }
     tb.appendChild(tr);
   });
   $("#detailsPanel").hidden = false;
@@ -1088,7 +1184,10 @@ $("#btnExport").onclick = () => {
   const cols = ["#", "sch.colTask", "sch.colStart", "sch.colEnd", "sch.colDuration",
     "sch.colUnits", "sch.colDeadline", "sch.colStatus"]
     .map(k => `<th>${k === "#" ? "#" : esc(t(k))}</th>`).join("");
-  const body = $("#detailsTable tbody").innerHTML;
+  const tmp = document.createElement("tbody");
+  tmp.innerHTML = $("#detailsTable tbody").innerHTML;
+  tmp.querySelectorAll("tr").forEach(row => row.lastElementChild.remove()); // drop pin column
+  const body = tmp.innerHTML;
   const css = `
     body{font:14px/1.5 "Segoe UI",system-ui,sans-serif;color:#101828;margin:24px;background:#fff}
     h1{font-size:20px;margin:0 0 4px} h2{font-size:15px;margin:22px 0 8px}

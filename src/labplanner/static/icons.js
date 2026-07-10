@@ -41,6 +41,11 @@ const ICONS = {
     `<line x1="16" y1="2" x2="16" y2="6"/>` +
     `<rect x="7" y="13" width="6" height="3" rx="1" fill="currentColor" stroke="none"/>` +
     `<rect x="11" y="17" width="7" height="3" rx="1" fill="currentColor" stroke="none" opacity=".55"/></svg>`,
+  pin: `${_S}<path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 ` +
+    `15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 ` +
+    `10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1z"/></svg>`,
+  link: `${_S}<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>` +
+    `<path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`,
   grip: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">' +
     '<circle cx="9" cy="6" r="1.4"/><circle cx="15" cy="6" r="1.4"/>' +
     '<circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/>' +

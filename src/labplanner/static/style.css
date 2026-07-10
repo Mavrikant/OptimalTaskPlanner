@@ -172,6 +172,18 @@ legend{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing
 #taskList .drag{display:inline-flex;color:var(--border-strong);flex:none}
 #taskList .drag svg{width:13px;height:13px}
 #taskList li:hover .drag{color:var(--muted)}
+#taskList .badge-mini{
+  display:inline-flex;width:17px;height:17px;border-radius:4px;flex:none;
+  align-items:center;justify-content:center;
+}
+#taskList .badge-mini svg{width:11px;height:11px}
+#taskList .badge-mini.run{color:var(--accent);background:var(--accent-weak)}
+#taskList .badge-mini.fin{color:var(--green);background:#dcfce7}
+#taskList .badge-mini.dep{color:var(--muted);background:var(--offhours)}
+#taskList .badge-mini.pinb{color:var(--amber);background:#fef3c7}
+#taskList li.done .tname{color:var(--muted);text-decoration:line-through}
+.deps-list{display:flex;flex-direction:column;gap:7px;max-height:170px;overflow-y:auto;
+  margin-bottom:8px}
 .empty-state{
   padding:22px 12px;text-align:center;color:var(--muted);font-size:13px;
   border:1px dashed var(--border-strong);border-radius:8px;margin-bottom:10px;
