@@ -1,6 +1,26 @@
 "use strict";
-/* Bilingual UI dictionary. Every user-visible string lives here.
-   Add both `en` and `tr` for any new key (see CONTRIBUTING.md). */
+/* Multilingual UI layer. Every user-visible string lives in I18N.
+   To add a language: append an entry to LANGUAGES (code, native name, flag SVG)
+   and a full dictionary to I18N (see CONTRIBUTING.md). */
+
+const LANGUAGES = [
+  {
+    code: "en", name: "English",
+    flag: '<svg viewBox="0 0 30 20" aria-hidden="true"><rect width="30" height="20" fill="#012169"/>' +
+      '<path d="M0,0 30,20 M30,0 0,20" stroke="#fff" stroke-width="4"/>' +
+      '<path d="M0,0 30,20 M30,0 0,20" stroke="#C8102E" stroke-width="2"/>' +
+      '<path d="M15,0 V20 M0,10 H30" stroke="#fff" stroke-width="6"/>' +
+      '<path d="M15,0 V20 M0,10 H30" stroke="#C8102E" stroke-width="3.6"/></svg>',
+  },
+  {
+    code: "tr", name: "Türkçe",
+    flag: '<svg viewBox="0 0 30 20" aria-hidden="true"><rect width="30" height="20" fill="#E30A17"/>' +
+      '<circle cx="11.5" cy="10" r="5" fill="#fff"/><circle cx="12.8" cy="10" r="4" fill="#E30A17"/>' +
+      '<polygon fill="#fff" points="17.2,7.2 17.85,9.11 19.86,9.13 18.25,10.34 18.85,12.27 ' +
+      '17.2,11.1 15.55,12.27 16.15,10.34 14.54,9.13 16.55,9.11"/></svg>',
+  },
+];
+
 const I18N = {
   en: {
     "app.subtitle": "Optimal lab scheduling with CP-SAT",
@@ -14,7 +34,8 @@ const I18N = {
     "save.failed": "Save failed",
 
     "res.pool": "Equipment pool",
-    "res.addEquipment": "+ Add equipment",
+    "res.addEquipment": "Add equipment",
+    "res.empty": "No equipment yet — add your first device.",
     "res.exportPool": "Export",
     "res.importPool": "Import",
     "res.colType": "Equipment type",
@@ -56,11 +77,12 @@ const I18N = {
     "legend.workHours": "Work hours",
     "legend.offHours": "Off hours / weekend / holiday",
 
-    "tasks.add": "+ Add",
-    "tasks.duplicate": "Duplicate",
-    "tasks.delete": "Delete",
+    "tasks.add": "Add task",
+    "tasks.duplicate": "Duplicate task",
+    "tasks.delete": "Delete task",
     "tasks.priorityHint": "Drag rows to reorder — top = highest priority.",
     "tasks.none": "No task selected.",
+    "tasks.empty": "No tasks yet — add your first task.",
     "tasks.newName": "New task",
     "tasks.copySuffix": "(copy)",
     "tasks.name": "Task name",
@@ -70,7 +92,7 @@ const I18N = {
     "tasks.deadline": "Deadline",
     "tasks.deadlineHint": "task must finish by this time",
     "tasks.resources": "Required resources",
-    "tasks.addResource": "+ Add resource",
+    "tasks.addResource": "Add resource",
     "tasks.noResources": "No resources required.",
     "tasks.slots": "Time slots — next {days} days",
     "tasks.paintMode": "Paint mode:",
@@ -111,6 +133,10 @@ const I18N = {
     "modal.cancel": "Cancel",
     "modal.delete": "Delete",
     "unit.hours": "h",
+    "lang.label": "Language",
+    "footer.tagline": "Open-source optimal lab scheduling",
+    "footer.powered": "Built with OR-Tools CP-SAT & FastAPI",
+    "footer.license": "MIT License",
   },
 
   tr: {
@@ -125,7 +151,8 @@ const I18N = {
     "save.failed": "Kaydetme başarısız",
 
     "res.pool": "Ekipman havuzu",
-    "res.addEquipment": "+ Ekipman ekle",
+    "res.addEquipment": "Ekipman ekle",
+    "res.empty": "Henüz ekipman yok — ilk cihazınızı ekleyin.",
     "res.exportPool": "Dışa aktar",
     "res.importPool": "İçe aktar",
     "res.colType": "Ekipman tipi",
@@ -167,11 +194,12 @@ const I18N = {
     "legend.workHours": "Mesai saatleri",
     "legend.offHours": "Mesai dışı / hafta sonu / tatil",
 
-    "tasks.add": "+ Ekle",
-    "tasks.duplicate": "Kopyala",
-    "tasks.delete": "Sil",
+    "tasks.add": "Görev ekle",
+    "tasks.duplicate": "Görevi kopyala",
+    "tasks.delete": "Görevi sil",
     "tasks.priorityHint": "Sıralamak için satırları sürükleyin — en üst = en yüksek öncelik.",
     "tasks.none": "Görev seçilmedi.",
+    "tasks.empty": "Henüz görev yok — ilk görevinizi ekleyin.",
     "tasks.newName": "Yeni görev",
     "tasks.copySuffix": "(kopya)",
     "tasks.name": "Görev adı",
@@ -181,7 +209,7 @@ const I18N = {
     "tasks.deadline": "Termin",
     "tasks.deadlineHint": "görev bu zamana kadar bitmeli",
     "tasks.resources": "Gerekli kaynaklar",
-    "tasks.addResource": "+ Kaynak ekle",
+    "tasks.addResource": "Kaynak ekle",
     "tasks.noResources": "Kaynak gerekmiyor.",
     "tasks.slots": "Zaman aralıkları — önümüzdeki {days} gün",
     "tasks.paintMode": "Boyama modu:",
@@ -222,6 +250,10 @@ const I18N = {
     "modal.cancel": "İptal",
     "modal.delete": "Sil",
     "unit.hours": "sa",
+    "lang.label": "Dil",
+    "footer.tagline": "Açık kaynak optimal laboratuvar planlama",
+    "footer.powered": "OR-Tools CP-SAT ve FastAPI ile geliştirildi",
+    "footer.license": "MIT Lisansı",
   },
 };
 
@@ -240,8 +272,11 @@ function applyI18n() {
   document.querySelectorAll("[data-i18n]").forEach(el => {
     el.textContent = t(el.dataset.i18n);
   });
-  document.querySelectorAll("#langSwitch button").forEach(b =>
-    b.classList.toggle("active", b.dataset.lang === LANG));
+  document.querySelectorAll("[data-i18n-title]").forEach(el => {
+    const v = t(el.dataset.i18nTitle);
+    el.title = v;
+    el.setAttribute("aria-label", v);
+  });
 }
 
 function setLang(lang) {

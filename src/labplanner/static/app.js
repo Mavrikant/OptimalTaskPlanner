@@ -130,7 +130,34 @@ function activateTab(name) {
   if (name === "schedule") renderSchedule(); // re-measure width for the Gantt
 }
 $$("#tabs button").forEach(b => { b.onclick = () => activateTab(b.dataset.tab); });
-$$("#langSwitch button").forEach(b => { b.onclick = () => setLang(b.dataset.lang); });
+
+/* language dropdown: flags come from the LANGUAGES registry in i18n.js */
+function renderLangMenu() {
+  const current = LANGUAGES.find(l => l.code === LANG) || LANGUAGES[0];
+  $("#langFlag").innerHTML = current.flag;
+  const list = $("#langList"); list.innerHTML = "";
+  LANGUAGES.forEach(l => {
+    const b = document.createElement("button");
+    b.className = "lang-item"; b.setAttribute("role", "menuitem");
+    b.innerHTML = `<span class="flag">${l.flag}</span><span>${esc(l.name)}</span>` +
+      (l.code === LANG ? `<span class="check">${icon("check")}</span>` : "");
+    b.onclick = () => { closeLangList(); setLang(l.code); };
+    list.appendChild(b);
+  });
+}
+function closeLangList() {
+  $("#langList").hidden = true;
+  $("#langBtn").setAttribute("aria-expanded", "false");
+}
+$("#langBtn").onclick = e => {
+  e.stopPropagation();
+  const list = $("#langList");
+  list.hidden = !list.hidden;
+  $("#langBtn").setAttribute("aria-expanded", String(!list.hidden));
+};
+document.addEventListener("click", e => {
+  if (!e.target.closest("#langMenu")) closeLangList();
+});
 
 /* ================= equipment pool ================= */
 const unitNames = (name, count) =>
@@ -143,17 +170,25 @@ function allUnits() {
 const eqOfUnit = unit =>
   project.equipment.find(eq => unitNames(eq.name, eq.count).includes(unit));
 
+const iconBtn = (name, titleKey, cls = "") =>
+  `<button class="btn icon small ${cls}" title="${esc(t(titleKey))}" ` +
+  `aria-label="${esc(t(titleKey))}">${icon(name)}</button>`;
+
 function renderResources() {
   const tb = $("#eqTable tbody"); tb.innerHTML = "";
   let units = 0;
+  if (!project.equipment.length) {
+    tb.innerHTML = `<tr><td colspan="3" style="border:none;padding:0">
+      <div class="empty-state">${esc(t("res.empty"))}</div></td></tr>`;
+  }
   project.equipment.forEach((eq, i) => {
     units += eq.count;
     const tr = document.createElement("tr");
     tr.innerHTML = `<td>${esc(eq.name)}</td><td>${eq.count}</td>
-      <td><button class="btn small" data-a="edit">${t("res.edit")}</button>
-          <button class="btn small danger" data-a="del">${t("res.delete")}</button></td>`;
-    tr.querySelector("[data-a=edit]").onclick = () => eqModal(i);
-    tr.querySelector("[data-a=del]").onclick = async () => {
+      <td class="row-actions">${iconBtn("pencil", "res.edit")}${iconBtn("trash", "res.delete", "danger")}</td>`;
+    const [btnEdit, btnDel] = tr.querySelectorAll(".row-actions .btn");
+    btnEdit.onclick = () => eqModal(i);
+    btnDel.onclick = async () => {
       const used = project.tasks.filter(x => (x.resources[eq.name] || 0) > 0);
       const msg = used.length
         ? t("eq.usedByTasks", { name: eq.name, n: used.length })
@@ -418,11 +453,16 @@ async function loadCountries() {
 /* ================= task list ================= */
 function renderTaskList() {
   const ul = $("#taskList"); ul.innerHTML = "";
+  if (!project.tasks.length) {
+    ul.innerHTML = `<li class="empty-state" style="cursor:default">${esc(t("tasks.empty"))}</li>`;
+    return;
+  }
   project.tasks.forEach((task, i) => {
     const li = document.createElement("li");
     li.draggable = true; li.dataset.id = task.id;
     li.className = task.id === selectedId ? "selected" : "";
-    li.innerHTML = `<span class="prio">${i + 1}.</span>
+    li.innerHTML = `<span class="drag">${icon("grip")}</span>
+      <span class="prio">${i + 1}.</span>
       <span class="tname">${esc(task.name)}</span>
       <span class="thours">${fmtHours(task.minutes)}</span>`;
     li.onclick = () => { selectedId = task.id; renderTaskList(); renderEditor(); };
@@ -510,18 +550,22 @@ function renderEditor() {
   </div>
   <fieldset><legend>${t("tasks.resources")}</legend>
     <table id="resTable"><tbody></tbody></table>
-    <button id="btnAddRes" class="btn small" style="margin-top:8px">${t("tasks.addResource")}</button>
+    <button id="btnAddRes" class="btn icon small accent" style="margin-top:8px"
+      title="${esc(t("tasks.addResource"))}"
+      aria-label="${esc(t("tasks.addResource"))}">${icon("plus")}</button>
   </fieldset>
   <fieldset><legend>${t("tasks.slots", { days: horizon.days })}</legend>
     <div class="row wrap" style="margin-bottom:8px">
       <span class="small muted">${t("tasks.paintMode")}</span>
-      <label class="check"><input type="radio" name="paint" value="unavailable" checked>
-        ${t("tasks.unavailable")}</label>
-      <label class="check"><input type="radio" name="paint" value="preferred">
-        ${t("tasks.preferred")}</label>
-      <label class="check"><input type="radio" name="paint" value="">
-        ${t("tasks.clear")}</label>
-      <span class="small muted">— ${t("tasks.paintHint")}</span>
+      <div class="paint-seg" role="radiogroup">
+        <label><input type="radio" name="paint" value="unavailable" checked>
+          <span class="dot du"></span>${t("tasks.unavailable")}</label>
+        <label><input type="radio" name="paint" value="preferred">
+          <span class="dot dp"></span>${t("tasks.preferred")}</label>
+        <label><input type="radio" name="paint" value="">
+          <span class="dot dc"></span>${t("tasks.clear")}</label>
+      </div>
+      <span class="small muted">${t("tasks.paintHint")}</span>
     </div>
     <div class="gridwrap" id="taskGridWrap"></div>
     <div class="legend">
@@ -598,7 +642,7 @@ function renderResRows(el, task) {
     const tr = document.createElement("tr");
     tr.innerHTML = `<td style="border:none"><select>${opts}</select></td>
       <td style="border:none"><input type="number" min="1" max="99" value="${qty}"></td>
-      <td style="border:none"><button class="btn small danger">${t("res.delete")}</button></td>`;
+      <td style="border:none">${iconBtn("trash", "res.delete", "danger")}</td>`;
     tr.querySelector("select").onchange = e => {
       const nn = e.target.value;
       if (nn !== name && nn in task.resources) {
@@ -629,7 +673,7 @@ function renderResRows(el, task) {
 /* ================= solve ================= */
 $("#btnSolve").onclick = async () => {
   const btn = $("#btnSolve");
-  const label = btn.querySelector("span");
+  const label = btn.querySelector("span[data-i18n]");
   btn.disabled = true; label.textContent = t("app.solving");
   try {
     await saveNow(); // flush pending edits first
@@ -674,17 +718,17 @@ function renderSchedule() {
   $("#btnExport").disabled = !(sc && sc.status !== "INFEASIBLE" && sc.tasks.length);
   if (!sc) { st.textContent = t("sch.notSolved"); wrap.innerHTML = ""; return; }
   if (sc.status === "INFEASIBLE") {
-    st.innerHTML = `<b class="bad">INFEASIBLE</b> — ${esc(sc.message)}`;
+    st.innerHTML = `<span class="badge bad">INFEASIBLE</span><span>${esc(sc.message)}</span>`;
     wrap.innerHTML = ""; return;
   }
   const stale = sc.horizon_start && sc.horizon_start !== horizon.start_date;
-  st.innerHTML = `<b class="ok">${esc(sc.status)}</b> — ` +
+  st.innerHTML = `<span class="badge ok">${esc(sc.status)}</span><span>` +
     esc(t("sch.summary", {
       makespan: fmtHours(sc.makespan_minutes || 0),
       time: sc.solve_time_s, n: sc.tasks.length,
     })) +
     ` <span class="muted">(${esc(t("sch.meta",
-      { at: sc.solved_at || "", from: sc.horizon_start || "" }))})</span>` +
+      { at: sc.solved_at || "", from: sc.horizon_start || "" }))})</span></span>` +
     (stale ? ` <b class="bad">${esc(t("sch.stale"))}</b>` : "");
   wrap.innerHTML = buildGanttSVG(false);
   attachTooltips(wrap);
@@ -868,6 +912,7 @@ window.addEventListener("resize", () => {
 /* ================= boot ================= */
 function renderAll() {
   applyI18n();
+  renderLangMenu();
   renderResources();
   renderUnitPanel();
   renderWorkCalendar();
@@ -877,6 +922,13 @@ function renderAll() {
 }
 window.renderAll = renderAll;
 
+async function loadVersion() {
+  try {
+    const d = await api("/api/health");
+    $("#footVersion").textContent = "v" + d.version;
+  } catch (_) { /* footer just stays without a version */ }
+}
+
 async function load() {
   const d = await api("/api/project");
   project = d.project; horizon = d.horizon;
@@ -884,8 +936,10 @@ async function load() {
   window.__appReady = true;
   renderAll();
   loadCountries(); // async, non-blocking
+  loadVersion();
 }
 applyI18n();
+renderLangMenu();
 load().catch(e => {
   document.querySelector("main").insertAdjacentHTML("afterbegin",
     `<div class="panel" style="margin-bottom:16px;color:var(--red)">${esc(e.message)}</div>`);

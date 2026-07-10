@@ -17,6 +17,7 @@ html,body{margin:0}
 body{
   font:14px/1.5 "Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
   background:var(--bg);color:var(--text);
+  min-height:100vh;display:flex;flex-direction:column;
 }
 h1,h2,h3{margin:0;font-weight:600}
 h2{font-size:15px}
@@ -33,12 +34,27 @@ header{
 .brand .sub{color:var(--muted);font-size:12px;display:block;margin-top:-2px}
 .save-state{margin-left:auto;font-size:12px;color:var(--muted);transition:color .2s}
 .save-state.error{color:var(--red)}
-.lang-switch{display:flex;border:1px solid var(--border-strong);border-radius:8px;overflow:hidden}
-.lang-switch button{
-  border:none;background:none;padding:5px 10px;font:inherit;font-size:12px;font-weight:600;
-  color:var(--muted);cursor:pointer;
+
+/* language dropdown (flags) */
+.lang-menu{position:relative}
+.lang-btn{padding:5px 8px;gap:4px}
+.lang-btn>span[data-icon] svg{width:13px;height:13px;color:var(--muted)}
+.flag{display:inline-flex}
+.flag svg{width:21px;height:14px;border-radius:2.5px;display:block;
+  box-shadow:0 0 0 1px rgba(16,24,40,.12)}
+.lang-list{
+  position:absolute;right:0;top:calc(100% + 6px);z-index:60;min-width:160px;
+  background:var(--panel);border:1px solid var(--border);border-radius:10px;
+  box-shadow:var(--shadow-lg);padding:5px;
 }
-.lang-switch button.active{background:var(--accent);color:#fff}
+.lang-item{
+  display:flex;align-items:center;gap:10px;width:100%;border:none;background:none;
+  font:inherit;padding:8px 10px;border-radius:7px;cursor:pointer;color:var(--text);
+  text-align:left;
+}
+.lang-item:hover{background:var(--accent-weak)}
+.lang-item .check{margin-left:auto;display:inline-flex;color:var(--accent)}
+.lang-item .check svg{width:14px;height:14px}
 
 /* ---------- buttons ---------- */
 .btn{
@@ -58,6 +74,11 @@ header{
 .btn.danger:hover{background:#fef2f2;border-color:var(--red)}
 .btn:disabled{opacity:.5;cursor:default;pointer-events:none}
 .btn.small{padding:3px 10px;font-size:12px}
+.btn.icon{width:32px;height:32px;padding:0;justify-content:center;flex:none}
+.btn.icon svg{width:16px;height:16px}
+.btn.icon.small{width:26px;height:26px}
+.btn.icon.small svg{width:14px;height:14px}
+.btn span[data-icon]{display:inline-flex}
 
 /* ---------- tabs ---------- */
 nav.tabs{
@@ -67,12 +88,15 @@ nav.tabs{
 nav.tabs button{
   border:none;background:none;font:inherit;font-weight:500;color:var(--muted);
   padding:11px 16px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;
+  display:inline-flex;align-items:center;gap:7px;
 }
 nav.tabs button:hover{color:var(--text)}
 nav.tabs button.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+.tab-ic{display:inline-flex}
+.tab-ic svg{width:15px;height:15px}
 
 /* ---------- layout ---------- */
-main{padding:18px 20px;max-width:1500px;margin:0 auto}
+main{padding:18px 20px;max-width:1500px;margin:0 auto;width:100%;flex:1}
 body.tab-schedule main{max-width:none}
 .tab{display:none}.tab.active{display:block}
 .panel{
@@ -142,6 +166,27 @@ legend{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing
 #taskList .prio{color:var(--muted);font-size:12px;min-width:20px}
 #taskList .tname{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #taskList .thours{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+#taskList .drag{display:inline-flex;color:var(--border-strong);flex:none}
+#taskList .drag svg{width:13px;height:13px}
+#taskList li:hover .drag{color:var(--muted)}
+.empty-state{
+  padding:22px 12px;text-align:center;color:var(--muted);font-size:13px;
+  border:1px dashed var(--border-strong);border-radius:8px;margin-bottom:10px;
+}
+
+/* paint-mode segmented control */
+.paint-seg{display:inline-flex;border:1px solid var(--border-strong);border-radius:8px;overflow:hidden}
+.paint-seg label{
+  display:inline-flex;align-items:center;gap:6px;padding:5px 12px;font-size:12px;
+  cursor:pointer;color:var(--muted);background:var(--panel);user-select:none;
+}
+.paint-seg label+label{border-left:1px solid var(--border)}
+.paint-seg input{position:absolute;opacity:0;pointer-events:none}
+.paint-seg label:has(input:checked){background:var(--accent-weak);color:var(--text);font-weight:600}
+.paint-seg .dot{width:10px;height:10px;border-radius:3px;border:1px solid var(--border)}
+.paint-seg .dot.du{background:var(--red-weak)}
+.paint-seg .dot.dp{background:var(--green-weak)}
+.paint-seg .dot.dc{background:#fff}
 
 /* ---------- slot grid ---------- */
 .gridwrap{overflow-x:auto}
@@ -175,8 +220,15 @@ table.slotgrid td.cell.past{
 
 /* ---------- schedule ---------- */
 .schedule-head{display:flex;align-items:center;gap:14px;margin-bottom:12px;flex-wrap:wrap}
-#status{font-size:13px;color:var(--muted);flex:1;min-width:240px}
-#status b.ok{color:var(--green)} #status b.bad{color:var(--red)}
+#status{font-size:13px;color:var(--muted);flex:1;min-width:240px;display:flex;
+  align-items:center;gap:8px;flex-wrap:wrap}
+#status .badge{
+  display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;
+  letter-spacing:.04em;
+}
+#status .badge.ok{background:#dcfce7;color:#15803d}
+#status .badge.bad{background:#fee2e2;color:#b91c1c}
+#status b.bad{color:var(--red)}
 #btnExport{margin-left:auto}
 #ganttwrap{
   overflow:auto;background:var(--panel);border:1px solid var(--border);
@@ -226,5 +278,21 @@ table.slotgrid td.cell.past{
 .toast.error{background:#7f1d1d}
 .toast.success{background:#14532d}
 @keyframes toast-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ---------- footer ---------- */
+footer{
+  background:var(--panel);border-top:1px solid var(--border);
+  padding:13px 20px;font-size:12px;color:var(--muted);
+}
+.footer-inner{max-width:1500px;margin:0 auto;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.footer-brand{display:flex;align-items:center;gap:7px;font-weight:600;color:var(--text)}
+.footer-brand svg{width:15px;height:15px;color:var(--accent)}
+.footer-links{margin-left:auto;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+footer a{
+  color:var(--muted);text-decoration:none;display:inline-flex;align-items:center;gap:5px;
+}
+footer a:hover{color:var(--accent)}
+footer a span[data-icon]{display:inline-flex}
+footer a svg{width:14px;height:14px}
 
 [hidden]{display:none!important}

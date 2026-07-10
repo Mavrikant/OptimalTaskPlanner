@@ -23,19 +23,29 @@
     </div>
   </div>
   <span id="saveState" class="save-state"></span>
-  <div class="lang-switch" id="langSwitch" role="group" aria-label="Language">
-    <button data-lang="en">EN</button><button data-lang="tr">TR</button>
+  <div class="lang-menu" id="langMenu">
+    <button id="langBtn" class="btn lang-btn" data-i18n-title="lang.label" aria-haspopup="true" aria-expanded="false">
+      <span class="flag" id="langFlag"></span>
+      <span data-icon="chevron"></span>
+    </button>
+    <div class="lang-list" id="langList" role="menu" hidden></div>
   </div>
   <button id="btnSolve" class="btn primary">
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+    <span data-icon="play"></span>
     <span data-i18n="app.solve"></span>
   </button>
 </header>
 
 <nav class="tabs" id="tabs">
-  <button data-tab="resources" data-i18n="tabs.resources"></button>
-  <button data-tab="tasks" class="active" data-i18n="tabs.tasks"></button>
-  <button data-tab="schedule" data-i18n="tabs.schedule"></button>
+  <button data-tab="resources">
+    <span class="tab-ic" data-icon="package"></span><span data-i18n="tabs.resources"></span>
+  </button>
+  <button data-tab="tasks" class="active">
+    <span class="tab-ic" data-icon="tasks"></span><span data-i18n="tabs.tasks"></span>
+  </button>
+  <button data-tab="schedule">
+    <span class="tab-ic" data-icon="gantt"></span><span data-i18n="tabs.schedule"></span>
+  </button>
 </nav>
 
 <main id="main">
@@ -47,9 +57,9 @@
       <div class="panel-head">
         <h2 data-i18n="res.pool"></h2>
         <div class="row">
-          <button id="btnAddEq" class="btn accent" data-i18n="res.addEquipment"></button>
-          <button id="btnExportPool" class="btn" data-i18n="res.exportPool"></button>
-          <button id="btnImportPool" class="btn" data-i18n="res.importPool"></button>
+          <button id="btnAddEq" class="btn icon accent" data-icon="plus" data-i18n-title="res.addEquipment"></button>
+          <button id="btnExportPool" class="btn icon" data-icon="download" data-i18n-title="res.exportPool"></button>
+          <button id="btnImportPool" class="btn icon" data-icon="upload" data-i18n-title="res.importPool"></button>
           <input type="file" id="poolFile" accept=".json" hidden>
         </div>
       </div>
@@ -79,7 +89,7 @@
         <div id="holidayChips" class="chips"></div>
         <div class="row" style="margin-top:8px">
           <input type="date" id="holidayDate">
-          <button id="btnAddHoliday" class="btn" data-i18n="res.add"></button>
+          <button id="btnAddHoliday" class="btn icon" data-icon="plus" data-i18n-title="res.add"></button>
         </div>
       </div>
       <div class="field" style="margin-top:14px">
@@ -87,7 +97,7 @@
         <div class="row wrap">
           <select id="holidayCountry"></select>
           <select id="holidayYear"></select>
-          <button id="btnFillHolidays" class="btn" data-i18n="res.fill"></button>
+          <button id="btnFillHolidays" class="btn icon accent" data-icon="wand" data-i18n-title="res.autofill"></button>
         </div>
       </div>
     </div>
@@ -97,7 +107,7 @@
         <h2 data-i18n="res.unitAvailability"></h2>
         <div class="row">
           <select id="unitSelect"></select>
-          <button id="btnClearUnit" class="btn" data-i18n="res.clearUnit"></button>
+          <button id="btnClearUnit" class="btn icon" data-icon="eraser" data-i18n-title="res.clearUnit"></button>
         </div>
       </div>
       <p class="muted small" data-i18n="res.availHint"></p>
@@ -116,9 +126,9 @@
   <div class="tasks-layout">
     <div class="panel">
       <div class="row" style="margin-bottom:12px">
-        <button id="btnAddTask" class="btn accent" data-i18n="tasks.add"></button>
-        <button id="btnDupTask" class="btn" data-i18n="tasks.duplicate"></button>
-        <button id="btnDelTask" class="btn danger" data-i18n="tasks.delete"></button>
+        <button id="btnAddTask" class="btn icon accent" data-icon="plus" data-i18n-title="tasks.add"></button>
+        <button id="btnDupTask" class="btn icon" data-icon="copy" data-i18n-title="tasks.duplicate"></button>
+        <button id="btnDelTask" class="btn icon danger" data-icon="trash" data-i18n-title="tasks.delete"></button>
       </div>
       <ul id="taskList"></ul>
       <div class="muted small" data-i18n="tasks.priorityHint"></div>
@@ -130,12 +140,7 @@
 <section id="tab-schedule" class="tab">
   <div class="schedule-head">
     <div id="status"></div>
-    <button id="btnExport" class="btn" disabled>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-      </svg>
-      <span data-i18n="sch.export"></span>
-    </button>
+    <button id="btnExport" class="btn icon" data-icon="download" data-i18n-title="sch.export" disabled></button>
   </div>
   <div id="ganttwrap"></div>
   <div class="panel" id="detailsPanel" hidden>
@@ -160,6 +165,26 @@
 
 </main>
 
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="3" y="4" width="18" height="18" rx="3"/><line x1="3" y1="10" x2="21" y2="10"/>
+        <line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/>
+      </svg>
+      LabPlanner <span id="footVersion" class="muted"></span>
+    </div>
+    <span class="muted" data-i18n="footer.tagline"></span>
+    <div class="footer-links">
+      <span class="muted" data-i18n="footer.powered"></span>
+      <a href="https://github.com/OWNER/labplanner/blob/main/LICENSE" target="_blank" rel="noopener" data-i18n="footer.license"></a>
+      <a href="https://github.com/OWNER/labplanner" target="_blank" rel="noopener">
+        <span data-icon="github"></span>GitHub
+      </a>
+    </div>
+  </div>
+</footer>
+
 <div id="tooltip" class="tooltip" hidden></div>
 
 <div id="modalBack" class="modal-back" hidden>
@@ -176,6 +201,7 @@
 <div id="toasts"></div>
 
 <script src="/static/i18n.js"></script>
+<script src="/static/icons.js"></script>
 <script src="/static/app.js"></script>
 </body>
 </html>
