@@ -57,7 +57,7 @@
   "tasks.add": "Görev ekle",
   "tasks.duplicate": "Görevi kopyala",
   "tasks.delete": "Görevi sil",
-  "tasks.priorityHint": "Sıralamak için satırları sürükleyin — en üst = en yüksek öncelik.",
+  "tasks.priorityHint": "Sıralamak için satırları sürükleyin — en üst = en yüksek öncelik. Alt+↑/↓ da seçili görevi taşır.",
   "tasks.none": "Görev seçilmedi.",
   "tasks.empty": "Henüz görev yok — ilk görevinizi ekleyin.",
   "tasks.newName": "Yeni görev",

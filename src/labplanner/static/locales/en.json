@@ -57,7 +57,7 @@
   "tasks.add": "Add task",
   "tasks.duplicate": "Duplicate task",
   "tasks.delete": "Delete task",
-  "tasks.priorityHint": "Drag rows to reorder — top = highest priority.",
+  "tasks.priorityHint": "Drag rows to reorder — top = highest priority. Alt+↑/↓ also moves the selected task.",
   "tasks.none": "No task selected.",
   "tasks.empty": "No tasks yet — add your first task.",
   "tasks.newName": "New task",

@@ -90,22 +90,25 @@ function toast(msg, type = "info") {
   setTimeout(() => el.remove(), 4000);
 }
 
-let modalOpts = null;
+let modalOpts = null, modalPrevFocus = null;
 function openModal(opts) {
   modalOpts = opts;
+  modalPrevFocus = document.activeElement;
   $("#modalTitle").textContent = opts.title;
   $("#modalBody").innerHTML = opts.body;
   $("#modalOk").textContent = opts.okLabel || t("modal.ok");
   $("#modalCancel").textContent = t("modal.cancel");
   $("#modalCancel").hidden = !!opts.hideCancel;
-  document.querySelector(".modal").classList.toggle("wide", !!opts.wide);
+  $("#modalBack .modal").classList.toggle("wide", !!opts.wide);
   $("#modalBack").hidden = false;
-  const first = $("#modalBody").querySelector("input,select");
-  if (first) { first.focus(); if (first.select) first.select(); }
+  const first = $("#modalBody").querySelector("input,select") || $("#modalOk");
+  first.focus(); if (first.select) first.select();
 }
 function closeModal() {
   const opts = modalOpts; modalOpts = null;
   $("#modalBack").hidden = true; $("#modalBody").innerHTML = "";
+  if (modalPrevFocus && modalPrevFocus.focus) modalPrevFocus.focus();
+  modalPrevFocus = null;
   if (opts && opts.onClose) opts.onClose();
 }
 $("#modalOk").onclick = () => {
@@ -120,6 +123,15 @@ document.addEventListener("keydown", e => {
   if ($("#modalBack").hidden) return;
   if (e.key === "Escape") closeModal();
   if (e.key === "Enter" && e.target.tagName !== "TEXTAREA") $("#modalOk").click();
+  if (e.key === "Tab") {  // keep focus inside the dialog
+    const focusable = Array.from(document.querySelectorAll(
+      "#modalBack input, #modalBack select, #modalBack button"))
+      .filter(x => !x.hidden && !x.disabled);
+    if (!focusable.length) return;
+    const first = focusable[0], last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
 });
 function confirmModal(title, message, okLabel) {
   return new Promise(resolve => {
@@ -214,12 +226,37 @@ $("#btnInfoSchedule").onclick = () => infoModal("info.schedule");
 
 /* ================= tabs & language ================= */
 function activateTab(name) {
-  $$("#tabs button").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+  $$("#tabs button").forEach(b => {
+    const active = b.dataset.tab === name;
+    b.classList.toggle("active", active);
+    b.setAttribute("aria-selected", String(active));
+  });
   $$(".tab").forEach(s => s.classList.toggle("active", s.id === "tab-" + name));
   document.body.classList.toggle("tab-schedule", name === "schedule");
   if (name === "schedule") renderSchedule(); // re-measure width for the Gantt
 }
 $$("#tabs button").forEach(b => { b.onclick = () => activateTab(b.dataset.tab); });
+$("#tabs").addEventListener("keydown", e => {
+  if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+  const tabs = $$("#tabs button");
+  const idx = tabs.findIndex(b => b.classList.contains("active"));
+  const next = (idx + (e.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length;
+  tabs[next].focus();
+  activateTab(tabs[next].dataset.tab);
+});
+
+// keyboard alternative to drag-reordering: Alt+Arrow moves the selected task
+document.addEventListener("keydown", e => {
+  if (!e.altKey || (e.key !== "ArrowUp" && e.key !== "ArrowDown")) return;
+  if (!document.querySelector("#tab-tasks.active") || !$("#modalBack").hidden) return;
+  const task = selTask(); if (!task) return;
+  const i = project.tasks.indexOf(task);
+  const j = e.key === "ArrowUp" ? i - 1 : i + 1;
+  if (j < 0 || j >= project.tasks.length) return;
+  e.preventDefault();
+  [project.tasks[i], project.tasks[j]] = [project.tasks[j], project.tasks[i]];
+  markSave(); renderTaskList();
+});
 
 /* language dropdown: flags come from the LANGUAGES registry in i18n.js */
 function renderLangMenu() {
@@ -469,8 +506,11 @@ function renderUnitGrid() {
 }
 
 /* ================= shared slot grid ================= */
+/* Painting uses Pointer Events so mouse, pen and touch all work; a roving
+   keyboard cursor (arrows + Space) offers a pointer-free alternative. */
 let painting = false, paintVal = "";
-document.addEventListener("mouseup", () => { painting = false; });
+document.addEventListener("pointerup", () => { painting = false; });
+document.addEventListener("pointercancel", () => { painting = false; });
 
 function buildSlotGrid(wrap, { getState, setState, pickValue }) {
   const tbl = document.createElement("table"); tbl.className = "slotgrid";
@@ -479,6 +519,8 @@ function buildSlotGrid(wrap, { getState, setState, pickValue }) {
   for (let h = 0; h < 24; h++) hh += `<th colspan="2">${h}</th>`;
   head.innerHTML = hh; tbl.appendChild(head);
   const nowS = horizon.now_slot;
+  const SPD = horizon.slots_per_day;
+  const cells = [];
   for (let d = 0; d < horizon.days; d++) {
     const tr = document.createElement("tr");
     const lbl = document.createElement("td");
@@ -486,9 +528,10 @@ function buildSlotGrid(wrap, { getState, setState, pickValue }) {
     lbl.textContent = dayLabelLong(d);
     tr.appendChild(lbl);
     const dateKey = horizon.day_dates[d];
-    for (let s = 0; s < horizon.slots_per_day; s++) {
+    const row = [];
+    for (let s = 0; s < SPD; s++) {
       const td = document.createElement("td");
-      const abs = d * horizon.slots_per_day + s;
+      const abs = d * SPD + s;
       const past = abs < nowS;
       td.className = "cell " +
         (isWork(d, s) ? "work" : (isOffDay(d) ? "weekend" : "offday")) +
@@ -497,25 +540,72 @@ function buildSlotGrid(wrap, { getState, setState, pickValue }) {
       const st = getState(dateKey, s);
       if (st) td.classList.add(st);
       if (!past && setState) {
-        const apply = v => {
+        td._apply = v => {
           td.classList.remove("preferred", "unavailable");
           if (v) td.classList.add(v);
           setState(dateKey, s, v);
         };
-        td.onmousedown = e => {
+        td.addEventListener("pointerdown", e => {
           e.preventDefault();
           paintVal = pickValue(e, td);
-          painting = true; apply(paintVal);
-        };
-        td.onmouseover = () => { if (painting) apply(paintVal); };
+          painting = true;
+          td._apply(paintVal);
+          // release the implicit touch capture so pointermove reaches other cells
+          if (e.pointerId != null && td.hasPointerCapture && td.hasPointerCapture(e.pointerId)) {
+            td.releasePointerCapture(e.pointerId);
+          }
+        });
         td.oncontextmenu = e => e.preventDefault();
       }
       tr.appendChild(td);
+      row.push(td);
     }
+    cells.push(row);
     tbl.appendChild(tr);
   }
+  tbl.addEventListener("pointermove", e => {
+    if (!painting) return;
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const cell = el && el.closest ? el.closest("td.cell") : null;
+    if (cell && cell._apply) cell._apply(paintVal);
+  });
   wrap.innerHTML = ""; wrap.appendChild(tbl);
   wrap.oncontextmenu = e => e.preventDefault();
+
+  if (!setState) return;
+  // keyboard painting: arrows move a visible cursor, PageUp/Down jump 6 hours,
+  // Space/Enter applies the active paint mode on the cursor cell
+  wrap.tabIndex = 0;
+  let cur = null;
+  const setCursor = (d, s) => {
+    if (cur) cells[cur.d][cur.s].classList.remove("cursor");
+    cur = { d, s };
+    const td = cells[d][s];
+    td.classList.add("cursor");
+    td.scrollIntoView({ block: "nearest", inline: "nearest" });
+  };
+  wrap.addEventListener("keydown", e => {
+    const move = {
+      ArrowLeft: [0, -1], ArrowRight: [0, 1],
+      ArrowUp: [-1, 0], ArrowDown: [1, 0],
+      PageUp: [0, -12], PageDown: [0, 12],
+    }[e.key];
+    if (move) {
+      e.preventDefault();
+      if (!cur) { setCursor(0, Math.min(Math.max(nowS, 0), SPD - 1)); return; }
+      setCursor(
+        Math.max(0, Math.min(horizon.days - 1, cur.d + move[0])),
+        Math.max(0, Math.min(SPD - 1, cur.s + move[1])),
+      );
+    } else if ((e.key === " " || e.key === "Enter") && cur) {
+      e.preventDefault();
+      const td = cells[cur.d][cur.s];
+      if (td._apply) td._apply(pickValue({ button: 0 }, td));
+    }
+  });
+  wrap.addEventListener("blur", () => {
+    if (cur) { cells[cur.d][cur.s].classList.remove("cursor"); cur = null; }
+  });
 }
 
 /* ================= working calendar ================= */

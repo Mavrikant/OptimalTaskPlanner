@@ -50,21 +50,21 @@
   </div>
 </header>
 
-<nav class="tabs" id="tabs">
-  <button data-tab="resources">
+<nav class="tabs" id="tabs" role="tablist">
+  <button data-tab="resources" role="tab" aria-selected="false" aria-controls="tab-resources">
     <span class="tab-ic" data-icon="package"></span><span data-i18n="tabs.resources"></span>
   </button>
-  <button data-tab="tasks" class="active">
+  <button data-tab="tasks" class="active" role="tab" aria-selected="true" aria-controls="tab-tasks">
     <span class="tab-ic" data-icon="tasks"></span><span data-i18n="tabs.tasks"></span>
   </button>
-  <button data-tab="schedule">
+  <button data-tab="schedule" role="tab" aria-selected="false" aria-controls="tab-schedule">
     <span class="tab-ic" data-icon="gantt"></span><span data-i18n="tabs.schedule"></span>
   </button>
 </nav>
 
 <main id="main">
 
-<section id="tab-resources" class="tab">
+<section id="tab-resources" class="tab" role="tabpanel">
   <div class="res-layout">
 
     <div class="panel">
@@ -141,7 +141,7 @@
   </div>
 </section>
 
-<section id="tab-tasks" class="tab active">
+<section id="tab-tasks" class="tab active" role="tabpanel">
   <div class="tasks-layout">
     <div class="panel">
       <div class="row" style="margin-bottom:12px">
@@ -158,7 +158,7 @@
   </div>
 </section>
 
-<section id="tab-schedule" class="tab">
+<section id="tab-schedule" class="tab" role="tabpanel">
   <div class="schedule-head">
     <div id="status"></div>
     <div class="zoom-group" role="group">
@@ -237,7 +237,7 @@
 <div id="tooltip" class="tooltip" hidden></div>
 
 <div id="modalBack" class="modal-back" hidden>
-  <div class="modal" role="dialog" aria-modal="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <h3 id="modalTitle"></h3>
     <div id="modalBody" class="modal-body"></div>
     <div class="modal-foot">
@@ -247,7 +247,7 @@
   </div>
 </div>
 
-<div id="toasts"></div>
+<div id="toasts" role="status" aria-live="polite"></div>
 
 <script src="/static/i18n.js"></script>
 <script src="/static/icons.js"></script>
