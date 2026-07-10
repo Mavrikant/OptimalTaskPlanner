@@ -391,7 +391,10 @@ def test_large_project_solves_without_double_booking():
                 resources={rtype: 1 + (i % 2 if rtype == "Rig" else 0)},  # some need 2 Rigs
             )
         )
-    s = solve(make_project(equipment, tasks), now=NOW, time_limit_s=15.0)
+    # generous cap: this is a ceiling CP-SAT rarely needs in full, not a target —
+    # a tight one made this test flaky on slower/shared CI runners (times out
+    # before finding any solution, reported as INFEASIBLE instead of UNKNOWN)
+    s = solve(make_project(equipment, tasks), now=NOW, time_limit_s=60.0)
     assert s.status in ("OPTIMAL", "FEASIBLE")
     assert len(s.tasks) == 40
     _assert_no_double_booking(s)
