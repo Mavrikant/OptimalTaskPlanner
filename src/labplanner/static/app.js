@@ -22,21 +22,28 @@ async function api(path, opts) {
 const selTask = () => project.tasks.find(x => x.id === selectedId) || null;
 const locale = () => LANG === "tr" ? "tr-TR" : "en-US";
 
+/* Dates are written in full ("Monday, July 13") wherever there is room;
+   compact forms are only used where space is tight (e.g. Gantt at low zoom). */
 function fmtDT(v) {
   const d = v instanceof Date ? v : new Date(v);
   return new Intl.DateTimeFormat(locale(), {
-    weekday: "short", day: "numeric", month: "short", hour: "2-digit",
+    weekday: "long", day: "numeric", month: "long", hour: "2-digit",
     minute: "2-digit", hour12: false,
   }).format(d);
 }
-function fmtDate(iso) {
+function fmtDateLong(iso) {
   return new Intl.DateTimeFormat(locale(), {
-    weekday: "short", day: "numeric", month: "short",
+    weekday: "long", day: "numeric", month: "long", year: "numeric",
   }).format(new Date(iso + "T00:00:00"));
 }
-function dayLabel(d) {
+function dayLabel(d) {  // compact fallback for narrow spaces
   return new Intl.DateTimeFormat(locale(), {
     weekday: "short", day: "numeric", month: "numeric",
+  }).format(new Date(horizon.day_dates[d] + "T00:00:00"));
+}
+function dayLabelLong(d) {
+  return new Intl.DateTimeFormat(locale(), {
+    weekday: "long", day: "numeric", month: "long",
   }).format(new Date(horizon.day_dates[d] + "T00:00:00"));
 }
 function fmtHours(minutes) {
@@ -380,7 +387,7 @@ function buildSlotGrid(wrap, { getState, setState, pickValue }) {
     const tr = document.createElement("tr");
     const lbl = document.createElement("td");
     lbl.className = "daylabel" + (horizon.holiday_flags[d] ? " holiday" : "");
-    lbl.textContent = dayLabel(d);
+    lbl.textContent = dayLabelLong(d);
     tr.appendChild(lbl);
     const dateKey = horizon.day_dates[d];
     for (let s = 0; s < horizon.slots_per_day; s++) {
@@ -453,7 +460,8 @@ function renderHolidayChips() {
   [...project.calendar.holidays].sort().forEach(d => {
     const chip = document.createElement("span");
     chip.className = "chip";
-    chip.innerHTML = `${esc(d)} <button title="${t("res.delete")}">&times;</button>`;
+    chip.title = d;
+    chip.innerHTML = `${esc(fmtDateLong(d))} <button title="${t("res.delete")}">&times;</button>`;
     chip.querySelector("button").onclick = async () => {
       project.calendar.holidays = project.calendar.holidays.filter(x => x !== d);
       await saveNow(); renderAll();
@@ -563,14 +571,14 @@ function renderEditor() {
 
   const dlDateOpts = horizon.day_dates.map((d, i) =>
     `<option value="${d}" ${task.deadline && task.deadline.date === d ? "selected" : ""}>
-       ${dayLabel(i)} (${d})</option>`).join("");
+       ${dayLabelLong(i)} (${d})</option>`).join("");
   const dlSlot = task.deadline ? hhmmSlot(task.deadline.time) : 34; // default 17:00
   const dlTimeOpts = Array.from({ length: 49 }, (_, s) =>
     `<option value="${s}" ${s === dlSlot ? "selected" : ""}>${slotHHMM(s)}</option>`).join("");
   const es = task.earliest_start;
   const esDateOpts = horizon.day_dates.map((d, i) =>
     `<option value="${d}" ${es && es.date === d ? "selected" : ""}>
-       ${dayLabel(i)} (${d})</option>`).join("");
+       ${dayLabelLong(i)} (${d})</option>`).join("");
   const esSlot = es ? hhmmSlot(es.time) : hhmmSlot(project.calendar.work_start);
   const esTimeOpts = Array.from({ length: 49 }, (_, s) =>
     `<option value="${s}" ${s === esSlot ? "selected" : ""}>${slotHHMM(s)}</option>`).join("");
@@ -798,8 +806,10 @@ function renderSchedule() {
       makespan: fmtHours(sc.makespan_minutes || 0),
       time: sc.solve_time_s, n: sc.tasks.length,
     })) +
-    ` <span class="muted">(${esc(t("sch.meta",
-      { at: sc.solved_at || "", from: sc.horizon_start || "" }))})</span></span>` +
+    ` <span class="muted">(${esc(t("sch.meta", {
+      at: sc.solved_at ? fmtDT(sc.solved_at) : "",
+      from: sc.horizon_start ? fmtDateLong(sc.horizon_start) : "",
+    }))})</span></span>` +
     (stale ? ` <b class="bad">${esc(t("sch.stale"))}</b>` : "");
   wrap.innerHTML = buildGanttSVG(false);
   attachTooltips(wrap);
@@ -843,8 +853,9 @@ function buildGanttSVG(forExport) {
         `width="${(SPD - horizon.work_end_slot) * pxs}" height="${units.length * ROW}" fill="#eef1f6"/>`;
     }
     s += `<line x1="${x}" y1="${TOP - 16}" x2="${x}" y2="${H - 10}" stroke="#c8ccd2"/>`;
+    const dName = SPD * pxs >= 165 ? dayLabelLong(d) : dayLabel(d); // full name if it fits
     s += `<text x="${x + 4}" y="${TOP - 22}" fill="${horizon.holiday_flags[d] ? "#dc2626" : "#333"}" ` +
-      `font-weight="600">${esc(dayLabel(d))}</text>`;
+      `font-weight="600">${esc(dName)}</text>`;
     const labelStep = hourW >= 26 ? 1 : hourW >= 13 ? 3 : 6; // denser labels as you zoom
     for (let h = labelStep; h < 24; h += labelStep) {
       s += `<text x="${LEFT + (d * SPD + h * 2) * pxs}" y="${TOP - 8}" fill="#999" ` +
@@ -1002,8 +1013,11 @@ $("#btnExport").onclick = () => {
 <title>${esc(t("sch.exportTitle"))} — ${esc(sc.horizon_start || "")}</title>
 <style>${css}</style></head><body>
 <h1>${esc(t("sch.exportTitle"))}</h1>
-<div class="meta">${esc(t("sch.meta", { at: sc.solved_at || "", from: sc.horizon_start || "" }))}
- · ${esc(t("sch.exportedAt", { at: new Date().toLocaleString(locale()) }))}</div>
+<div class="meta">${esc(t("sch.meta", {
+    at: sc.solved_at ? fmtDT(sc.solved_at) : "",
+    from: sc.horizon_start ? fmtDateLong(sc.horizon_start) : "",
+  }))}
+ · ${esc(t("sch.exportedAt", { at: fmtDT(new Date()) }))}</div>
 <div class="gantt">${svg}</div>
 <h2>${esc(t("sch.details"))}</h2>
 <table><thead><tr>${cols}</tr></thead><tbody>${body}</tbody></table>
