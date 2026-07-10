@@ -826,6 +826,7 @@ function buildGanttSVG(forExport) {
   const LEFT = 150, TOP = 46, ROW = 26;
   const wrapW = $("#ganttwrap").clientWidth || 1280;
   const pxs = forExport ? 2.4 : Math.max(1.9, (wrapW - LEFT - 26) / HS) * ganttZoom;
+  const hourW = 2 * pxs;  // pixels per hour; drives gridline/label density
   const W = Math.round(LEFT + HS * pxs + 12), H = TOP + units.length * ROW + 12;
   const sc = project.schedule;
   let s = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" ` +
@@ -844,9 +845,22 @@ function buildGanttSVG(forExport) {
     s += `<line x1="${x}" y1="${TOP - 16}" x2="${x}" y2="${H - 10}" stroke="#c8ccd2"/>`;
     s += `<text x="${x + 4}" y="${TOP - 22}" fill="${horizon.holiday_flags[d] ? "#dc2626" : "#333"}" ` +
       `font-weight="600">${esc(dayLabel(d))}</text>`;
-    for (let h = 6; h < 24; h += 6) {
+    const labelStep = hourW >= 26 ? 1 : hourW >= 13 ? 3 : 6; // denser labels as you zoom
+    for (let h = labelStep; h < 24; h += labelStep) {
       s += `<text x="${LEFT + (d * SPD + h * 2) * pxs}" y="${TOP - 8}" fill="#999" ` +
         `font-size="9" text-anchor="middle">${h}</text>`;
+    }
+  }
+  // adaptive time gridlines: hours appear when zoomed in, half-hours when zoomed further
+  if (hourW >= 8 && units.length) {
+    const gridBottom = TOP + units.length * ROW;
+    for (let sl = 1; sl < HS; sl++) {
+      if (sl % SPD === 0) continue;           // day boundary line already drawn
+      const isHour = sl % 2 === 0;
+      if (!isHour && hourW < 20) continue;    // half-hour lines need more room
+      const x = LEFT + sl * pxs;
+      s += `<line x1="${x}" y1="${TOP}" x2="${x}" y2="${gridBottom}" ` +
+        `stroke="${isHour ? "#d4dae3" : "#e7eaf0"}"/>`;
     }
   }
   // unit rows
