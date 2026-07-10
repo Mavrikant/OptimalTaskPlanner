@@ -146,6 +146,26 @@ def test_export_xlsx_roundtrips(client):
     assert ws.freeze_panes == "A2"
 
 
+def test_export_xlsx_with_chart_has_two_sheets(client):
+    from io import BytesIO
+
+    from openpyxl import load_workbook
+
+    png = ("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwC"
+           "AAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==")
+    payload = {
+        "filename": "sched.xlsx", "sheet_name": "Tasks", "chart_sheet_name": "Chart",
+        "chart_png_base64": png, "chart_w": 400, "chart_h": 200,
+        "columns": ["Task"], "rows": [["RF sweep"]],
+    }
+    r = client.post("/api/export/xlsx", json=payload)
+    assert r.status_code == 200
+    wb = load_workbook(BytesIO(r.content))
+    assert wb.sheetnames == ["Chart", "Tasks"]
+    assert len(wb["Chart"]._images) == 1
+    assert wb["Tasks"]["A1"].value == "Task"
+
+
 def test_holiday_countries(client):
     d = client.get("/api/holidays/countries").json()
     codes = {c["code"] for c in d["countries"]}

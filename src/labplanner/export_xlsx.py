@@ -6,6 +6,7 @@ import re
 from io import BytesIO
 
 from openpyxl import Workbook
+from openpyxl.drawing.image import Image as XlImage
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
@@ -19,16 +20,35 @@ def _sheet_title(name: str) -> str:
     return title[:31] or "Sheet1"
 
 
-def build_workbook(columns: list[str], rows: list[list], sheet_name: str = "Sheet1") -> bytes:
-    """Return the bytes of a single-sheet .xlsx with a bold, frozen header row.
+def build_workbook(
+    columns: list[str],
+    rows: list[list],
+    sheet_name: str = "Sheet1",
+    chart_png: bytes | None = None,
+    chart_sheet_name: str = "Chart",
+    chart_size: tuple[int, int] | None = None,
+) -> bytes:
+    """Return the bytes of an .xlsx workbook.
 
-    Columns are auto-filtered and auto-sized; the header stays visible on scroll.
+    With a chart image, sheet 1 holds the Gantt picture and sheet 2 the table;
+    otherwise a single table sheet. The table header is bold, frozen and
+    auto-filtered, and columns are auto-sized.
     """
     columns = [str(c) for c in columns[:MAX_COLS]]
     ncols = len(columns)
     wb = Workbook()
-    ws = wb.active
-    ws.title = _sheet_title(sheet_name)
+
+    if chart_png:
+        ws_chart = wb.active
+        ws_chart.title = _sheet_title(chart_sheet_name)
+        img = XlImage(BytesIO(chart_png))
+        if chart_size:
+            img.width, img.height = chart_size
+        ws_chart.add_image(img, "A1")
+        ws = wb.create_sheet(_sheet_title(sheet_name))
+    else:
+        ws = wb.active
+        ws.title = _sheet_title(sheet_name)
 
     header_font = Font(bold=True, color="FFFFFF")
     header_fill = PatternFill("solid", fgColor="2563EB")

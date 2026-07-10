@@ -98,6 +98,8 @@
   "sch.export": "Export HTML",
   "sch.exportMenu": "Export",
   "sch.exportXlsx": "Export Excel",
+  "sch.sheetChart": "Chart",
+  "sch.sheetTasks": "Tasks",
   "sch.exportIcs": "Export ICS calendar",
   "sch.pinHere": "Pin to this start",
   "sch.pinned": "Task pinned to its scheduled start.",
@@ -183,5 +185,5 @@
   "info.tasks.title": "Tasks",
   "info.tasks.body": "<p>Each task describes one piece of lab work. The list order sets <b>priority</b>: drag rows — the higher a task sits, the earlier the solver tries to start it.</p><ul><li><b>Duration</b> is set in half-hour steps.</li><li><b>Work hours only</b> keeps the task inside the working calendar; enable <b>continue on next day</b> for tasks longer than one work day.</li><li><b>Earliest start</b> and <b>deadline</b> bound when the task may run; a <b>pinned start</b> fixes it to an exact time.</li><li><b>Dependencies</b> make the task wait for other tasks to finish.</li><li><b>Status</b> drives re-planning: done tasks drop out of the schedule, in-progress tasks keep their place on re-solve.</li><li><b>Required resources</b> request equipment by type and quantity (limited to what the pool holds).</li><li>In the slot grid, paint hours the task must avoid (<b>unavailable</b>) or should favour (<b>preferred</b>). Right-click paints preferred, middle-click clears.</li></ul>",
   "info.schedule.title": "Reading the schedule",
-  "info.schedule.body": "<p>Each row is one physical unit; coloured blocks are task reservations. One task may occupy several rows at once.</p><ul><li>Grey bands are off-hours, weekends and holidays; the red dashed line marks <b>now</b>.</li><li>Hover a block for full details; the table below lists start, end and deadline status per task.</li><li>Zoom with the magnifier buttons — hour and half-hour gridlines appear as you zoom in; unit names stay pinned while scrolling.</li><li>The pin button in the details table fixes a task to its scheduled start for the next re-solve.</li><li>The <b>export menu</b> downloads a self-contained interactive HTML report (with its own zoom), an Excel workbook of the table, or an ICS calendar you can import into Outlook/Google Calendar.</li></ul>"
+  "info.schedule.body": "<p>Each row is one physical unit; coloured blocks are task reservations. One task may occupy several rows at once.</p><ul><li>Grey bands are off-hours, weekends and holidays; the red dashed line marks <b>now</b>.</li><li>Hover a block for full details; the table below lists start, end and deadline status per task.</li><li>Zoom with the magnifier buttons — hour and half-hour gridlines appear as you zoom in; unit names stay pinned while scrolling.</li><li>The pin button in the details table fixes a task to its scheduled start for the next re-solve.</li><li>The <b>export menu</b> downloads a self-contained interactive HTML report (same zoom as here), a two-sheet Excel workbook (Gantt chart + task list), or an ICS calendar you can import into Outlook/Google Calendar.</li></ul>"
 }

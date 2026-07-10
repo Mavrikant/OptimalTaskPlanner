@@ -31,6 +31,7 @@ dependencies = [
     "pydantic>=2.6",
     "holidays>=0.50",
     "openpyxl>=3.1",
+    "pillow>=10",
 ]
 
 [project.optional-dependencies]
