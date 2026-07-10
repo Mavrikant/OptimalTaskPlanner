@@ -48,6 +48,9 @@ on macOS and Windows.
   `LANGUAGES` in `static/i18n.js`.
 - The solver (`solver.py`) must stay deterministic under an injected `now`
   timestamp — that is what makes it testable. Add a test for any solver change.
+- If a test passes an explicit `time_limit_s` to the solver, give it generous
+  headroom (it's a ceiling, not a performance target) — CI runners, especially
+  `windows-latest`, are slower/shared and a tight budget causes flaky timeouts.
 - Changing the shape of project JSON (fields on `Project`, `Task`, etc. in
   `models.py`) requires bumping `SCHEMA_VERSION` and adding a matching forward
   migration step in `storage.py`, so existing project files keep loading.

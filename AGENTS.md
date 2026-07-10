@@ -97,6 +97,11 @@ tests/
   the real `data/` directory (which is git-ignored and holds live user projects) from a test.
 - `tests/test_api.py` exercises the HTTP layer via `TestClient`; solver-level behavior
   belongs in `test_solver.py` instead, calling the solver directly for speed and precision.
+- When a solver test passes an explicit `time_limit_s`, give it generous headroom
+  (seconds, not a tight bound) — it's a ceiling CP-SAT rarely needs in full, not a
+  performance target, and a tight one is flaky on slower/shared CI runners (observed
+  on `windows-latest`: search times out before finding any solution, which the solver
+  reports as `status="INFEASIBLE"` rather than a distinct timeout status).
 
 ## PR / commit expectations
 
