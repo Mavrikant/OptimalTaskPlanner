@@ -1021,54 +1021,68 @@ function renderEditor() {
   const maxHours = horizon.horizon_slots / 2;
 
   el.innerHTML = `
-  <div class="row wrap" style="gap:20px;margin-bottom:14px">
-    <div class="field" style="flex:1;min-width:220px"><label>${t("tasks.name")}</label>
+  <div class="editor-head">
+    <div class="field"><label>${t("tasks.name")}</label>
       <input type="text" id="fName" value="${esc(task.name)}" style="width:100%"></div>
-    <div class="field"><label>${t("tasks.duration")}</label>
+    <div class="field compact"><label>${t("tasks.duration")}</label>
       <input type="number" id="fHours" min="0.5" max="${maxHours}" step="0.5"
              value="${task.minutes / 60}"></div>
-    <div class="field"><label>${t("tasks.status")}</label>
+    <div class="field compact"><label>${t("tasks.status")}</label>
       <select id="fStatus">${statusOpts}</select></div>
   </div>
-  <div class="row wrap" style="margin-bottom:14px">
-    <label class="check"><input type="checkbox" id="fWho" ${task.work_hours_only ? "checked" : ""}>
-      ${t("tasks.workHoursOnly", { start: project.calendar.work_start, end: project.calendar.work_end })}</label>
-    <label class="check"><input type="checkbox" id="fCont"
-      ${task.continue_next_day ? "checked" : ""} ${task.work_hours_only ? "" : "disabled"}>
-      ${t("tasks.continueNextDay")}</label>
+  <div class="editor-section">
+    <div class="editor-grid">
+      <div class="constraint toggles">
+        <label class="check"><input type="checkbox" id="fWho" ${task.work_hours_only ? "checked" : ""}>
+          ${t("tasks.workHoursOnly", { start: project.calendar.work_start, end: project.calendar.work_end })}</label>
+        <label class="check"><input type="checkbox" id="fCont"
+          ${task.continue_next_day ? "checked" : ""} ${task.work_hours_only ? "" : "disabled"}>
+          ${t("tasks.continueNextDay")}</label>
+      </div>
+      <div class="constraint">
+        <label class="check"><input type="checkbox" id="fEsOn" ${es ? "checked" : ""}>
+          ${t("tasks.earliestStart")}</label>
+        <div class="constraint-controls">
+          <select id="fEsDate" ${es ? "" : "disabled"}>${esDateOpts}</select>
+          <select id="fEsTime" ${es ? "" : "disabled"}>${esTimeOpts}</select>
+        </div>
+        <div class="hint muted small">${t("tasks.earliestHint")}</div>
+      </div>
+      <div class="constraint">
+        <label class="check"><input type="checkbox" id="fDlOn" ${task.deadline ? "checked" : ""}>
+          ${t("tasks.deadline")}</label>
+        <div class="constraint-controls">
+          <select id="fDlDate" ${task.deadline ? "" : "disabled"}>${dlDateOpts}</select>
+          <select id="fDlTime" ${task.deadline ? "" : "disabled"}>${dlTimeOpts}</select>
+        </div>
+        <div class="hint muted small">${t("tasks.deadlineHint")}</div>
+      </div>
+      <div class="constraint">
+        <label class="check"><input type="checkbox" id="fPinOn" ${pin ? "checked" : ""}>
+          ${t("tasks.pinnedStart")}</label>
+        <div class="constraint-controls">
+          <select id="fPinDate" ${pin ? "" : "disabled"}>${pinDateOpts}</select>
+          <select id="fPinTime" ${pin ? "" : "disabled"}>${pinTimeOpts}</select>
+        </div>
+        <div class="hint muted small">${t("tasks.pinnedHint")}</div>
+      </div>
+    </div>
   </div>
-  <div class="row wrap" style="margin-bottom:14px">
-    <label class="check"><input type="checkbox" id="fEsOn" ${es ? "checked" : ""}>
-      ${t("tasks.earliestStart")}</label>
-    <select id="fEsDate" ${es ? "" : "disabled"}>${esDateOpts}</select>
-    <select id="fEsTime" ${es ? "" : "disabled"}>${esTimeOpts}</select>
-    <span class="muted small">${t("tasks.earliestHint")}</span>
+  <div class="editor-section">
+    <div class="editor-grid stretch">
+      <fieldset><legend>${t("tasks.dependsOn")}</legend>
+        <div class="deps-list" id="depsList">${depsHtml}</div>
+        <div class="muted small">${t("tasks.dependsHint")}</div>
+      </fieldset>
+      <fieldset><legend>${t("tasks.resources")}</legend>
+        <table id="resTable"><tbody></tbody></table>
+        <button id="btnAddRes" class="btn icon small accent" style="margin-top:8px"
+          title="${esc(t("tasks.addResource"))}"
+          aria-label="${esc(t("tasks.addResource"))}">${icon("plus")}</button>
+      </fieldset>
+    </div>
   </div>
-  <div class="row wrap" style="margin-bottom:14px">
-    <label class="check"><input type="checkbox" id="fDlOn" ${task.deadline ? "checked" : ""}>
-      ${t("tasks.deadline")}</label>
-    <select id="fDlDate" ${task.deadline ? "" : "disabled"}>${dlDateOpts}</select>
-    <select id="fDlTime" ${task.deadline ? "" : "disabled"}>${dlTimeOpts}</select>
-    <span class="muted small">${t("tasks.deadlineHint")}</span>
-  </div>
-  <div class="row wrap" style="margin-bottom:14px">
-    <label class="check"><input type="checkbox" id="fPinOn" ${pin ? "checked" : ""}>
-      ${t("tasks.pinnedStart")}</label>
-    <select id="fPinDate" ${pin ? "" : "disabled"}>${pinDateOpts}</select>
-    <select id="fPinTime" ${pin ? "" : "disabled"}>${pinTimeOpts}</select>
-    <span class="muted small">${t("tasks.pinnedHint")}</span>
-  </div>
-  <fieldset><legend>${t("tasks.dependsOn")}</legend>
-    <div class="deps-list" id="depsList">${depsHtml}</div>
-    <div class="muted small">${t("tasks.dependsHint")}</div>
-  </fieldset>
-  <fieldset><legend>${t("tasks.resources")}</legend>
-    <table id="resTable"><tbody></tbody></table>
-    <button id="btnAddRes" class="btn icon small accent" style="margin-top:8px"
-      title="${esc(t("tasks.addResource"))}"
-      aria-label="${esc(t("tasks.addResource"))}">${icon("plus")}</button>
-  </fieldset>
-  <fieldset><legend>${t("tasks.slots", { days: horizon.days })}</legend>
+  <fieldset class="editor-section"><legend>${t("tasks.slots", { days: horizon.days })}</legend>
     <div class="row wrap" style="margin-bottom:8px">
       <span class="small muted">${t("tasks.paintMode")}</span>
       <div class="paint-seg" role="radiogroup">
