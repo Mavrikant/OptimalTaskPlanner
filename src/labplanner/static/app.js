@@ -728,23 +728,33 @@ function renderResRows(el, task) {
       ${t("tasks.noResources")}</td></tr>`;
   }
   entries.forEach(([name, qty]) => {
+    const eqNow = project.equipment.find(e => e.name === name);
+    const cap = eqNow ? Math.max(1, eqNow.count) : 99;   // never request more than exist
     const opts = project.equipment.map(e =>
-      `<option ${e.name === name ? "selected" : ""} value="${esc(e.name)}">
+      `<option ${e.name === name ? "selected" : ""} value="${esc(e.name)}"
+         ${e.count === 0 && e.name !== name ? "disabled" : ""}>
          ${esc(e.name)} (×${e.count})</option>`).join("");
     const tr = document.createElement("tr");
     tr.innerHTML = `<td style="border:none"><select>${opts}</select></td>
-      <td style="border:none"><input type="number" min="1" max="99" value="${qty}"></td>
+      <td style="border:none"><input type="number" min="1" max="${cap}" value="${qty}"></td>
       <td style="border:none">${iconBtn("trash", "res.delete", "danger")}</td>`;
     tr.querySelector("select").onchange = e => {
       const nn = e.target.value;
       if (nn !== name && nn in task.resources) {
         toast(t("res.alreadyInList"), "error"); e.target.value = name; return;
       }
-      delete task.resources[name]; task.resources[nn] = qty;
+      const newEq = project.equipment.find(x => x.name === nn);
+      delete task.resources[name];
+      task.resources[nn] = Math.min(qty, Math.max(1, newEq ? newEq.count : qty));
       markSave(); renderResRows(el, task);
     };
     tr.querySelector("input").onchange = e => {
-      task.resources[name] = Math.max(1, parseInt(e.target.value, 10) || 1);
+      let v = parseInt(e.target.value, 10) || 1;
+      if (v > cap) {
+        v = cap;
+        toast(t("tasks.qtyClamped", { n: cap, name }), "error");
+      }
+      task.resources[name] = Math.max(1, v);
       e.target.value = task.resources[name]; markSave();
     };
     tr.querySelector("button").onclick = () => {
@@ -753,7 +763,7 @@ function renderResRows(el, task) {
     tb.appendChild(tr);
   });
   el.querySelector("#btnAddRes").onclick = () => {
-    const free = project.equipment.find(e => !(e.name in task.resources));
+    const free = project.equipment.find(e => !(e.name in task.resources) && e.count > 0);
     if (!free) {
       toast(project.equipment.length ? t("res.allAdded") : t("res.defineFirst"), "error");
       return;
