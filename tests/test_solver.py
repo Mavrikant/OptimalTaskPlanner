@@ -310,6 +310,42 @@ def test_in_progress_task_finished_in_past_is_skipped():
     assert [x.task_id for x in s.tasks] == ["b"]
 
 
+def _assert_no_double_booking(schedule):
+    by_unit = {}
+    for stt in schedule.tasks:
+        for u in stt.units:
+            for seg in stt.segments:
+                by_unit.setdefault(u, []).append((seg.start_slot, seg.end_slot))
+    for u, intervals in by_unit.items():
+        intervals.sort()
+        for i in range(1, len(intervals)):
+            assert intervals[i][0] >= intervals[i - 1][1], \
+                f"unit {u} is double-booked: {intervals}"
+
+
+def test_large_project_solves_without_double_booking():
+    """A big model must stay solvable (pruned conflict encoding) and correct."""
+    equipment = [
+        {"name": "Rig", "count": 6},
+        {"name": "Bench", "count": 4},
+        {"name": "Chamber", "count": 2},
+    ]
+    types = ["Rig", "Bench", "Chamber"]
+    tasks = []
+    for i in range(40):
+        rtype = types[i % 3]
+        tasks.append(make_task(
+            id=f"t{i}", name=f"Task {i}",
+            minutes=60 + (i % 4) * 60,               # 1–4 h
+            work_hours_only=(i % 2 == 0),
+            resources={rtype: 1 + (i % 2 if rtype == "Rig" else 0)},  # some need 2 Rigs
+        ))
+    s = solve(make_project(equipment, tasks), now=NOW, time_limit_s=15.0)
+    assert s.status in ("OPTIMAL", "FEASIBLE")
+    assert len(s.tasks) == 40
+    _assert_no_double_booking(s)
+
+
 def test_infeasible_hint_names_the_blocking_deadline():
     # both tasks need the single Rig inside the same one-hour deadline window
     p = make_project(

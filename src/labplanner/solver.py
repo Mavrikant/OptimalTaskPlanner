@@ -403,17 +403,24 @@ def solve(
                 if s in bad:
                     model.Add(av + xv <= 1)
 
-    # no unit used twice in the same slot
-    unit_slot_users: dict[tuple[str, int], list] = {}
+    # no unit used twice in the same slot. Only reify (unit, slot) where two or
+    # more tasks could actually contend — a lone candidate can't conflict with
+    # itself, so skipping singletons keeps the model identical in meaning while
+    # cutting the bulk of the boolean variables on large projects.
+    contenders: dict[tuple[str, int], list[int]] = {}
     for ti, _t in enumerate(tasks):
-        for u, av in a[ti].items():
-            for s, xv in x[ti].items():
-                y = model.NewBoolVar(f"y_{ti}_{u}_{s}")
-                model.Add(y >= av + xv - 1)
-                unit_slot_users.setdefault((u, s), []).append(y)
-    for (_u, _s), ys in unit_slot_users.items():
-        if len(ys) > 1:
-            model.Add(sum(ys) <= 1)
+        for u in a[ti]:
+            for s in x[ti]:
+                contenders.setdefault((u, s), []).append(ti)
+    for (u, s), tis in contenders.items():
+        if len(tis) < 2:
+            continue
+        ys = []
+        for ti in tis:
+            y = model.NewBoolVar(f"y_{ti}_{u}_{s}")
+            model.Add(y >= a[ti][u] + x[ti][s] - 1)
+            ys.append(y)
+        model.AddAtMostOne(ys)
 
     model.Minimize(w_makespan * makespan + sum(obj_terms))
 
