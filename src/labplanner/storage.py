@@ -69,8 +69,15 @@ def _migrate_v1(raw: dict) -> dict:
     return raw
 
 
+def _migrate_v2(raw: dict) -> dict:
+    """v2 -> v3: per-project solver options (model defaults fill the rest)."""
+    raw.setdefault("solver", {})
+    return raw
+
+
 MIGRATIONS: dict[int, Callable[[dict], dict]] = {
     1: _migrate_v1,
+    2: _migrate_v2,
 }
 
 

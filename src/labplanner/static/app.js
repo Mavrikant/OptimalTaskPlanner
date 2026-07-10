@@ -284,6 +284,33 @@ function infoModal(key) {
   });
 }
 $("#btnInfoSolve").onclick = () => infoModal("info.solve");
+
+/* solver settings (per-project): time limit, workers, planning horizon days */
+$("#btnSolverOpts").onclick = () => {
+  const so = project.solver || {};
+  const num = (id, key, val, min, max) =>
+    `<div class="field"><label>${t(key)}</label>
+      <input id="${id}" type="number" min="${min}" max="${max}" value="${val}"></div>`;
+  openModal({
+    title: t("solver.title"),
+    body: num("soTime", "solver.timeLimit", so.time_limit_s ?? 20, 5, 120) +
+      num("soWorkers", "solver.workers", so.workers ?? 8, 1, 16) +
+      num("soDays", "solver.days", so.days ?? 14, 1, 31),
+    onOk: () => {
+      const clamp = (id, min, max, def) => {
+        const v = parseInt($("#" + id).value, 10);
+        return Number.isFinite(v) ? Math.max(min, Math.min(max, v)) : def;
+      };
+      project.solver = {
+        time_limit_s: clamp("soTime", 5, 120, 20),
+        workers: clamp("soWorkers", 1, 16, 8),
+        days: clamp("soDays", 1, 31, 14),
+      };
+      // saveNow() returns the recomputed horizon (day count may have changed)
+      saveNow().then(() => renderAll());
+    },
+  });
+};
 $("#btnInfoPool").onclick = () => infoModal("info.pool");
 $("#btnInfoCalendar").onclick = () => infoModal("info.calendar");
 $("#btnInfoAvail").onclick = () => infoModal("info.avail");

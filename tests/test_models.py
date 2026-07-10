@@ -2,8 +2,10 @@ import pytest
 from pydantic import ValidationError
 
 from labplanner.models import (
+    SCHEMA_VERSION,
     EquipmentType,
     Project,
+    SolverOptions,
     Task,
     WorkCalendar,
     equipment_units,
@@ -105,6 +107,18 @@ def test_task_pinned_start_validation():
         make_task(pinned_start={"date": "2026-07-06", "time": "10:15"})
     task = make_task(pinned_start={"date": "2026-07-06", "time": "10:30"})
     assert task.pinned_start.slot_of_day == 21
+
+
+def test_solver_options_defaults_and_bounds():
+    assert Project(name="x").solver == SolverOptions(time_limit_s=20, workers=8, days=14)
+    for bad in [{"time_limit_s": 4}, {"time_limit_s": 121},
+                {"workers": 0}, {"workers": 17}, {"days": 0}, {"days": 32}]:
+        with pytest.raises(ValidationError):
+            SolverOptions(**bad)
+
+
+def test_project_defaults_to_current_schema_version():
+    assert Project(name="x").schema_version == SCHEMA_VERSION
 
 
 def test_task_self_dependency_rejected():

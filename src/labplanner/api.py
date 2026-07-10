@@ -15,7 +15,7 @@ from pydantic import ValidationError
 
 from . import __version__, calendar_utils, solver
 from .config import Settings
-from .models import SLOTS_PER_DAY, Project
+from .models import SLOTS_PER_DAY, Project, SolverOptions
 from .storage import ProjectStore
 
 STATIC_DIR = Path(__file__).parent / "static"
@@ -37,15 +37,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         now = datetime.now()
         start = calendar_utils.horizon_start(now)
         cal = project.calendar
+        days = project.solver.days
         holidays_set = set(cal.holidays)
         day_dates = [(start + timedelta(days=d)).date().isoformat()
-                     for d in range(settings.days)]
+                     for d in range(days)]
         return {
             "now": now.isoformat(timespec="minutes"),
             "start_date": start.date().isoformat(),
-            "days": settings.days,
+            "days": days,
             "slots_per_day": SLOTS_PER_DAY,
-            "horizon_slots": settings.days * SLOTS_PER_DAY,
+            "horizon_slots": days * SLOTS_PER_DAY,
             "now_slot": calendar_utils.first_free_slot(now),
             "work_start_slot": cal.work_start_slot,
             "work_end_slot": cal.work_end_slot,
@@ -83,7 +84,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.post("/api/projects")
     def create_project(payload: dict | None = None) -> dict:
         name = str((payload or {}).get("name") or "").strip() or "New project"
-        pid = store.create(name)
+        # new projects inherit the server-level defaults (CLI --days / env)
+        seed = Project(name=name, solver=SolverOptions(
+            days=settings.days, time_limit_s=int(settings.solver_time_limit_s)))
+        pid = store.create(name, seed)
         return {"id": pid, "name": name}
 
     @app.post("/api/projects/import")
@@ -163,8 +167,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         def run() -> None:
             try:
                 schedule = solver.solve(
-                    project, days=settings.days,
-                    time_limit_s=settings.solver_time_limit_s,
+                    project, days=project.solver.days,
+                    time_limit_s=project.solver.time_limit_s,
+                    workers=project.solver.workers,
                     progress=on_progress, cancel=cancel,
                 )
                 if schedule.status == "CANCELLED":

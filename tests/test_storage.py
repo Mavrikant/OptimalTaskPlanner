@@ -97,6 +97,21 @@ def test_migrate_chain_fills_missing_fields():
     assert migrated["schema_version"] == SCHEMA_VERSION
 
 
+def test_v2_project_gains_default_solver_options(tmp_path):
+    store = ProjectStore(tmp_path)
+    pid = store.create("Legacy v2")
+    # simulate a v2 file on disk: no solver, schema_version 2
+    path = store._path(pid)
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    raw.pop("solver", None)
+    raw["schema_version"] = 2
+    path.write_text(json.dumps(raw), encoding="utf-8")
+
+    loaded = store.load(pid)
+    assert loaded.schema_version == SCHEMA_VERSION
+    assert loaded.solver.days == 14 and loaded.solver.time_limit_s == 20
+
+
 def test_backups_created_pruned_and_restored(store, monkeypatch):
     pid = store.create("B", default_project("B"))
     project = store.load(pid)

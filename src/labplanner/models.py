@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 SLOT_MINUTES = 30
 SLOTS_PER_DAY = 24 * 60 // SLOT_MINUTES  # 48
 # Bump when the on-disk project layout changes; add a matching storage.MIGRATIONS step.
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 SLOT_STATES = ("preferred", "unavailable")
 # Generous upper bound; the solver checks durations against the actual horizon.
 MAX_TASK_MINUTES = 60 * 24 * 60
@@ -201,6 +201,7 @@ class ScheduledTask(BaseModel):
 class Schedule(BaseModel):
     status: str
     message: str = ""
+    hints: list[str] = Field(default_factory=list)  # infeasibility relaxation suggestions
     solved_at: str | None = None
     horizon_start: str | None = None  # ISO date of day 0
     makespan_minutes: int | None = None
@@ -208,9 +209,16 @@ class Schedule(BaseModel):
     tasks: list[ScheduledTask] = Field(default_factory=list)
 
 
+class SolverOptions(BaseModel):
+    time_limit_s: int = Field(default=20, ge=5, le=120)
+    workers: int = Field(default=8, ge=1, le=16)
+    days: int = Field(default=14, ge=1, le=31)   # rolling planning horizon length
+
+
 class Project(BaseModel):
     name: str = "My lab"
     schema_version: int = SCHEMA_VERSION
+    solver: SolverOptions = Field(default_factory=SolverOptions)
     calendar: WorkCalendar = Field(default_factory=WorkCalendar)
     equipment: list[EquipmentType] = Field(default_factory=list)
     tasks: list[Task] = Field(default_factory=list)  # order = priority (top first)
