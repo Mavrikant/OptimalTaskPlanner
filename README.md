@@ -134,12 +134,15 @@ of the project data and an injected `now` timestamp, which keeps it fully unit-t
 
 ```bash
 pip install -e .[dev]
-ruff check .   # lint
-pytest         # tests
+ruff check .            # lint
+ruff format --check .   # formatting
+pytest                  # tests
 labplanner --reload
 ```
 
-Contributions welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
+Contributions welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). If you're an AI coding
+agent (or configuring one), start with [AGENTS.md](AGENTS.md) for the repo map,
+conventions and commands.
 
 ## License
 

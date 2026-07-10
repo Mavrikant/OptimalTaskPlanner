@@ -3,6 +3,11 @@
 Thanks for your interest in contributing! This document describes how to set up a
 development environment and the conventions we follow.
 
+Using an AI coding agent (Claude Code, Codex, Cursor, ...)? See
+[AGENTS.md](AGENTS.md) instead — it's the denser, agent-oriented version of this
+file: repo map, exact commands, and the same conventions below in agent-consumable
+form.
+
 ## Development setup
 
 ```bash
@@ -21,7 +26,7 @@ labplanner --reload
 
 ## Quality checks
 
-Before opening a pull request, make sure both pass:
+Before opening a pull request, make sure all three pass:
 
 ```bash
 ruff check .
@@ -43,6 +48,9 @@ on macOS and Windows.
   `LANGUAGES` in `static/i18n.js`.
 - The solver (`solver.py`) must stay deterministic under an injected `now`
   timestamp — that is what makes it testable. Add a test for any solver change.
+- Changing the shape of project JSON (fields on `Project`, `Task`, etc. in
+  `models.py`) requires bumping `SCHEMA_VERSION` and adding a matching forward
+  migration step in `storage.py`, so existing project files keep loading.
 - Prefer small, focused pull requests with a clear description.
 
 ## Reporting bugs
