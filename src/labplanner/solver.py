@@ -25,6 +25,7 @@ from .models import (
     ScheduledTask,
     ScheduleSegment,
     Task,
+    equipment_units,
 )
 
 
@@ -43,6 +44,16 @@ def deadline_slot(task: Task, start: datetime) -> int | None:
     return (d - start.date()).days * SLOTS_PER_DAY + task.deadline.slot_of_day
 
 
+def earliest_start_slot(task: Task, start: datetime) -> int | None:
+    if not task.earliest_start:
+        return None
+    try:
+        d = date.fromisoformat(task.earliest_start.date)
+    except ValueError:
+        return None
+    return (d - start.date()).days * SLOTS_PER_DAY + task.earliest_start.slot_of_day
+
+
 def _hours(slots: int) -> str:
     return f"{slots * SLOT_MINUTES / 60:g}"
 
@@ -58,6 +69,16 @@ def candidate_starts(
         return [], (
             f"deadline {task.deadline.date} {task.deadline.time} is already in the past"
         )
+    es = earliest_start_slot(task, start)
+    if es is not None:
+        if es >= horizon:
+            return [], (
+                f"earliest start {task.earliest_start.date} {task.earliest_start.time} "
+                f"is beyond the {horizon // SLOTS_PER_DAY}-day horizon"
+            )
+        if dl is not None and es + dur > dl:
+            return [], "earliest start leaves no room before the deadline"
+    min_start = now_slot if es is None else max(now_slot, es)
 
     cands: list[tuple[int, list[int]]] = []
     if task.work_hours_only:
@@ -70,7 +91,7 @@ def candidate_starts(
                 )
             for i in range(len(wh) - dur + 1):
                 occ = wh[i : i + dur]
-                if occ[0] < now_slot:
+                if occ[0] < min_start:
                     continue
                 if blocked.intersection(occ):
                     continue
@@ -98,13 +119,13 @@ def candidate_starts(
                 for s in range(first, last - dur + 2):
                     k = base + s
                     occ = list(range(k, k + dur))
-                    if k < now_slot or blocked.intersection(occ):
+                    if k < min_start or blocked.intersection(occ):
                         continue
                     if dl is not None and occ[-1] + 1 > dl:
                         continue
                     cands.append((k, occ))
     else:
-        for k in range(max(now_slot, 0), horizon - dur + 1):
+        for k in range(max(min_start, 0), horizon - dur + 1):
             occ = list(range(k, k + dur))
             if blocked.intersection(occ):
                 continue
@@ -113,19 +134,14 @@ def candidate_starts(
             cands.append((k, occ))
 
     if not cands:
-        return [], "no feasible start slot (check deadline, unavailable hours and duration)"
+        return [], ("no feasible start slot "
+                    "(check deadline, earliest start, unavailable hours and duration)")
     return cands, ""
 
 
 def expand_units(project: Project) -> dict[str, list[str]]:
-    """type name -> [unit names]  (VSG x3 -> VSG-1..VSG-3)."""
-    pool: dict[str, list[str]] = {}
-    for eq in project.equipment:
-        if eq.count == 1:
-            pool[eq.name] = [eq.name]
-        else:
-            pool[eq.name] = [f"{eq.name}-{i + 1}" for i in range(eq.count)]
-    return pool
+    """type name -> [unit names]  (custom names, or VSG x3 -> VSG-1..VSG-3)."""
+    return {eq.name: equipment_units(eq) for eq in project.equipment}
 
 
 def unit_unavailability(project: Project, start: datetime, days: int) -> dict[str, set[int]]:

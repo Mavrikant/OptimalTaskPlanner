@@ -171,6 +171,48 @@ def test_preferred_slots_win_within_makespan():
     assert segs(s, 1)[0].start == f"{DAY0}T10:00"
 
 
+def test_earliest_start_delays_task():
+    p = make_project(
+        [], [make_task(minutes=60, earliest_start={"date": "2026-07-07", "time": "10:00"})]
+    )
+    s = solve(p, now=NOW)
+    assert s.status == "OPTIMAL"
+    assert segs(s)[0].start == "2026-07-07T10:00"
+
+
+def test_earliest_start_in_past_has_no_effect():
+    p = make_project(
+        [], [make_task(minutes=60, earliest_start={"date": "2026-07-01", "time": "08:00"})]
+    )
+    s = solve(p, now=NOW)
+    assert segs(s)[0].start == f"{DAY0}T07:00"  # now wins
+
+
+def test_earliest_start_after_deadline_is_infeasible():
+    p = make_project(
+        [], [make_task(minutes=120,
+                       earliest_start={"date": DAY0, "time": "10:00"},
+                       deadline={"date": DAY0, "time": "11:00"})]
+    )
+    s = solve(p, now=NOW)
+    assert s.status == "INFEASIBLE"
+    assert "earliest start" in s.message
+
+
+def test_custom_unit_names_used_in_assignment():
+    dates = [(NOW + timedelta(days=d)).date().isoformat() for d in range(14)]
+    p = make_project(
+        [{
+            "name": "Rig", "count": 2, "unit_names": ["Alpha", "Beta"],
+            "unavailable": {"Alpha": {d: list(range(48)) for d in dates}},
+        }],
+        [make_task(minutes=120, work_hours_only=True, resources={"Rig": 1})],
+    )
+    s = solve(p, now=NOW)
+    assert s.status == "OPTIMAL"
+    assert s.tasks[0].units == ["Beta"]
+
+
 def test_precheck_unknown_equipment():
     p = make_project([], [make_task(resources={"Ghost": 1})])
     s = solve(p, now=NOW)

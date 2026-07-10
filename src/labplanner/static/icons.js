@@ -24,6 +24,12 @@ const ICONS = {
     `<path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/>` +
     `<path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/></svg>`,
   chevron: `${_S}<polyline points="6 9 12 15 18 9"/></svg>`,
+  zoomIn: `${_S}<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>` +
+    `<line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>`,
+  zoomOut: `${_S}<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>` +
+    `<line x1="8" y1="11" x2="14" y2="11"/></svg>`,
+  fit: `${_S}<path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/>` +
+    `<path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>`,
   check: `${_S}<polyline points="20 6 9 17 4 12"/></svg>`,
   grip: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">' +
     '<circle cx="9" cy="6" r="1.4"/><circle cx="15" cy="6" r="1.4"/>' +

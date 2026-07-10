@@ -3,8 +3,10 @@ from pydantic import ValidationError
 
 from labplanner.models import (
     EquipmentType,
+    Project,
     Task,
     WorkCalendar,
+    equipment_units,
     hhmm_to_slot,
     slot_to_hhmm,
 )
@@ -65,3 +67,34 @@ def test_equipment_unavailable_slot_range():
         EquipmentType(name="VSG", count=2, unavailable={"VSG-1": {"2026-07-06": [48]}})
     eq = EquipmentType(name="VSG", count=2, unavailable={"VSG-1": {"2026-07-06": [0, 47]}})
     assert eq.unavailable["VSG-1"]["2026-07-06"] == [0, 47]
+
+
+def test_unit_names_validation():
+    with pytest.raises(ValidationError):
+        EquipmentType(name="VSG", count=2, unit_names=["A"])  # wrong length
+    with pytest.raises(ValidationError):
+        EquipmentType(name="VSG", count=2, unit_names=["A", "A"])  # duplicate
+    with pytest.raises(ValidationError):
+        EquipmentType(name="VSG", count=2, unit_names=["A", "  "])  # blank
+    eq = EquipmentType(name="VSG", count=2, unit_names=[" Alpha ", "Beta"])
+    assert equipment_units(eq) == ["Alpha", "Beta"]
+
+
+def test_default_unit_naming():
+    assert equipment_units(EquipmentType(name="OBB", count=1)) == ["OBB"]
+    assert equipment_units(EquipmentType(name="VSG", count=3)) == ["VSG-1", "VSG-2", "VSG-3"]
+
+
+def test_project_rejects_duplicate_unit_names_across_types():
+    with pytest.raises(ValidationError):
+        Project.model_validate({"equipment": [
+            {"name": "A", "count": 2, "unit_names": ["X", "Y"]},
+            {"name": "B", "count": 1, "unit_names": ["X"]},
+        ]})
+
+
+def test_task_earliest_start_validation():
+    with pytest.raises(ValidationError):
+        make_task(earliest_start={"date": "2026-07-06", "time": "10:15"})
+    task = make_task(earliest_start={"date": "2026-07-06", "time": "10:30"})
+    assert task.earliest_start.slot_of_day == 21

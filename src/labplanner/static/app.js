@@ -160,15 +160,17 @@ document.addEventListener("click", e => {
 });
 
 /* ================= equipment pool ================= */
-const unitNames = (name, count) =>
+const autoUnitNames = (name, count) =>
   count === 1 ? [name] : Array.from({ length: count }, (_, i) => `${name}-${i + 1}`);
+const unitsOf = eq =>
+  (eq.unit_names && eq.unit_names.length === eq.count && eq.count > 0)
+    ? eq.unit_names : autoUnitNames(eq.name, eq.count);
 function allUnits() {
   const out = [];
-  project.equipment.forEach(eq => out.push(...unitNames(eq.name, eq.count)));
+  project.equipment.forEach(eq => out.push(...unitsOf(eq)));
   return out;
 }
-const eqOfUnit = unit =>
-  project.equipment.find(eq => unitNames(eq.name, eq.count).includes(unit));
+const eqOfUnit = unit => project.equipment.find(eq => unitsOf(eq).includes(unit));
 
 const iconBtn = (name, titleKey, cls = "") =>
   `<button class="btn icon small ${cls}" title="${esc(t(titleKey))}" ` +
@@ -206,14 +208,18 @@ function renderResources() {
 
 function eqModal(i) {
   const isNew = i == null;
-  const eq = isNew ? { name: "", count: 1 } : project.equipment[i];
+  const eq = isNew ? { name: "", count: 1, unit_names: [], unavailable: {} }
+    : project.equipment[i];
   openModal({
     title: t(isNew ? "eq.modalNew" : "eq.modalEdit"),
     body: `
       <div class="field"><label>${t("eq.name")}</label>
         <input id="eqName" type="text" value="${esc(eq.name)}"></div>
       <div class="field"><label>${t("eq.count")}</label>
-        <input id="eqCount" type="number" min="0" max="99" value="${eq.count}"></div>`,
+        <input id="eqCount" type="number" min="0" max="99" value="${eq.count}"></div>
+      <div class="field"><label>${t("eq.unitNames")}</label>
+        <div class="muted small" style="margin-bottom:6px">${t("eq.unitNamesHint")}</div>
+        <div id="unitNamesWrap" class="unit-names"></div></div>`,
     onOk: () => {
       const name = $("#eqName").value.trim();
       const count = parseInt($("#eqCount").value, 10);
@@ -221,33 +227,68 @@ function eqModal(i) {
       if (project.equipment.some((e, j) => j !== i && e.name === name)) {
         toast(t("eq.nameExists"), "error"); return false;
       }
+      const raw = Array.from($("#unitNamesWrap").querySelectorAll("input"))
+        .map(x => x.value.trim());
+      let unitNames = [];
+      if (raw.some(v => v)) {
+        if (raw.some(v => !v) || new Set(raw).size !== raw.length) {
+          toast(t("eq.unitNamesInvalid"), "error"); return false;
+        }
+        unitNames = raw;
+      }
+      if (unitNames.join(" ") === autoUnitNames(name, count).join(" ")) {
+        unitNames = []; // identical to automatic naming — store canonically
+      }
+      const candidate = unitNames.length ? unitNames : autoUnitNames(name, count);
+      const others = project.equipment.filter((e, j) => j !== i).flatMap(unitsOf);
+      if (candidate.some(u => others.includes(u))) {
+        toast(t("eq.unitNamesTaken"), "error"); return false;
+      }
       if (isNew) {
-        project.equipment.push({ name, count, unavailable: {} });
+        project.equipment.push({ name, count, unit_names: unitNames, unavailable: {} });
       } else {
-        applyEqChange(eq, name, count);
+        applyEqChange(eq, name, count, unitNames);
       }
       markSave(); renderAll();
     },
   });
+
+  // unit-name inputs live-update with the count/name fields
+  const wrap = $("#unitNamesWrap");
+  const currentValues = () => Array.from(wrap.querySelectorAll("input")).map(x => x.value);
+  function renderNameInputs(values) {
+    const count = Math.min(99, Math.max(0, parseInt($("#eqCount").value, 10) || 0));
+    const auto = autoUnitNames($("#eqName").value.trim() || "?", count);
+    wrap.innerHTML = "";
+    for (let k = 0; k < count; k++) {
+      const inp = document.createElement("input");
+      inp.type = "text"; inp.placeholder = auto[k]; inp.value = values[k] || "";
+      wrap.appendChild(inp);
+    }
+  }
+  renderNameInputs(eq.unit_names && eq.unit_names.length ? eq.unit_names : []);
+  $("#eqCount").oninput = () => renderNameInputs(currentValues());
+  $("#eqName").oninput = () => renderNameInputs(currentValues());
 }
 
-function applyEqChange(eq, newName, newCount) {
-  const oldUnits = unitNames(eq.name, eq.count);
-  const newUnits = unitNames(newName, newCount);
+function applyEqChange(eq, newName, newCount, newUnitNames) {
+  const oldName = eq.name;
+  const oldUnits = unitsOf(eq);
+  if (newName !== oldName) {       // cascade rename into task resource lists
+    project.tasks.forEach(x => {
+      if (oldName in x.resources) {
+        x.resources[newName] = x.resources[oldName];
+        delete x.resources[oldName];
+      }
+    });
+  }
+  eq.name = newName; eq.count = newCount; eq.unit_names = newUnitNames;
+  const newUnits = unitsOf(eq);
   const remapped = {};
   oldUnits.forEach((u, idx) => {   // keep windows of surviving units, drop removed ones
     if (idx < newUnits.length && eq.unavailable[u]) remapped[newUnits[idx]] = eq.unavailable[u];
   });
-  if (newName !== eq.name) {       // cascade rename into task resource lists
-    project.tasks.forEach(x => {
-      if (eq.name in x.resources) {
-        x.resources[newName] = x.resources[eq.name];
-        delete x.resources[eq.name];
-      }
-    });
-  }
   eq.unavailable = remapped;
-  eq.name = newName; eq.count = newCount;
 }
 
 $("#btnAddEq").onclick = () => eqModal(null);
@@ -270,6 +311,7 @@ $("#poolFile").onchange = async e => {
         eqs.some(x => typeof x.name !== "string" || typeof x.count !== "number")) throw 0;
     project.equipment = eqs.map(x => ({
       name: x.name, count: x.count,
+      unit_names: Array.isArray(x.unit_names) ? x.unit_names : [],
       unavailable: (x.unavailable && typeof x.unavailable === "object") ? x.unavailable : {},
     }));
     markSave(); renderAll(); toast(t("import.done"), "success");
@@ -347,7 +389,8 @@ function buildSlotGrid(wrap, { getState, setState, pickValue }) {
       const past = abs < nowS;
       td.className = "cell " +
         (isWork(d, s) ? "work" : (isOffDay(d) ? "weekend" : "offday")) +
-        (past ? " past" : "");
+        (past ? " past" : "") +
+        (s % 2 === 0 ? " hb" : "") + (s % 12 === 0 ? " hb6" : "");
       const st = getState(dateKey, s);
       if (st) td.classList.add(st);
       if (!past && setState) {
@@ -489,7 +532,7 @@ $("#btnAddTask").onclick = () => {
   const task = {
     id: uuid(), name: t("tasks.newName"), minutes: 120,
     work_hours_only: false, continue_next_day: false,
-    deadline: null, resources: {}, slots: {},
+    deadline: null, earliest_start: null, resources: {}, slots: {},
   };
   project.tasks.push(task); selectedId = task.id;
   markSave(); renderTaskList(); renderEditor();
@@ -524,6 +567,13 @@ function renderEditor() {
   const dlSlot = task.deadline ? hhmmSlot(task.deadline.time) : 34; // default 17:00
   const dlTimeOpts = Array.from({ length: 49 }, (_, s) =>
     `<option value="${s}" ${s === dlSlot ? "selected" : ""}>${slotHHMM(s)}</option>`).join("");
+  const es = task.earliest_start;
+  const esDateOpts = horizon.day_dates.map((d, i) =>
+    `<option value="${d}" ${es && es.date === d ? "selected" : ""}>
+       ${dayLabel(i)} (${d})</option>`).join("");
+  const esSlot = es ? hhmmSlot(es.time) : hhmmSlot(project.calendar.work_start);
+  const esTimeOpts = Array.from({ length: 49 }, (_, s) =>
+    `<option value="${s}" ${s === esSlot ? "selected" : ""}>${slotHHMM(s)}</option>`).join("");
   const maxHours = horizon.horizon_slots / 2;
 
   el.innerHTML = `
@@ -540,6 +590,13 @@ function renderEditor() {
     <label class="check"><input type="checkbox" id="fCont"
       ${task.continue_next_day ? "checked" : ""} ${task.work_hours_only ? "" : "disabled"}>
       ${t("tasks.continueNextDay")}</label>
+  </div>
+  <div class="row wrap" style="margin-bottom:14px">
+    <label class="check"><input type="checkbox" id="fEsOn" ${es ? "checked" : ""}>
+      ${t("tasks.earliestStart")}</label>
+    <select id="fEsDate" ${es ? "" : "disabled"}>${esDateOpts}</select>
+    <select id="fEsTime" ${es ? "" : "disabled"}>${esTimeOpts}</select>
+    <span class="muted small">${t("tasks.earliestHint")}</span>
   </div>
   <div class="row wrap" style="margin-bottom:14px">
     <label class="check"><input type="checkbox" id="fDlOn" ${task.deadline ? "checked" : ""}>
@@ -609,6 +666,20 @@ function renderEditor() {
     markSave();
   };
   ["fDlOn", "fDlDate", "fDlTime"].forEach(id => { el.querySelector("#" + id).onchange = dlSync; });
+  const esSync = () => {
+    if (el.querySelector("#fEsOn").checked) {
+      task.earliest_start = {
+        date: el.querySelector("#fEsDate").value,
+        time: slotHHMM(parseInt(el.querySelector("#fEsTime").value, 10)),
+      };
+    } else {
+      task.earliest_start = null;
+    }
+    el.querySelector("#fEsDate").disabled = !task.earliest_start;
+    el.querySelector("#fEsTime").disabled = !task.earliest_start;
+    markSave();
+  };
+  ["fEsOn", "fEsDate", "fEsTime"].forEach(id => { el.querySelector("#" + id).onchange = esSync; });
 
   renderResRows(el, task);
   buildSlotGrid(el.querySelector("#taskGridWrap"), {
@@ -735,12 +806,26 @@ function renderSchedule() {
   renderDetailsTable();
 }
 
+let ganttZoom = 1;
+function setZoom(z) {
+  const wrap = $("#ganttwrap");
+  const old = ganttZoom;
+  ganttZoom = Math.min(8, Math.max(0.5, z));
+  if (ganttZoom === old) return;
+  const cx = wrap.scrollLeft + wrap.clientWidth / 2;   // keep the view centred
+  renderSchedule();
+  wrap.scrollLeft = cx * (ganttZoom / old) - wrap.clientWidth / 2;
+}
+$("#btnZoomIn").onclick = () => setZoom(ganttZoom * 1.4);
+$("#btnZoomOut").onclick = () => setZoom(ganttZoom / 1.4);
+$("#btnZoomFit").onclick = () => setZoom(1);
+
 function buildGanttSVG(forExport) {
   const units = allUnits();
   const HS = horizon.horizon_slots, SPD = horizon.slots_per_day;
   const LEFT = 150, TOP = 46, ROW = 26;
   const wrapW = $("#ganttwrap").clientWidth || 1280;
-  const pxs = forExport ? 2.4 : Math.max(1.9, (wrapW - LEFT - 26) / HS);
+  const pxs = forExport ? 2.4 : Math.max(1.9, (wrapW - LEFT - 26) / HS) * ganttZoom;
   const W = Math.round(LEFT + HS * pxs + 12), H = TOP + units.length * ROW + 12;
   const sc = project.schedule;
   let s = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" ` +

@@ -192,15 +192,18 @@ legend{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing
 .gridwrap{overflow-x:auto}
 table.slotgrid{border-collapse:collapse;user-select:none}
 table.slotgrid th{
-  font-size:9px;padding:1px 0;border:none;text-align:center;color:var(--muted);
-  text-transform:none;letter-spacing:0;
+  font-size:10px;padding:2px 0 3px;border:none;border-left:1px solid var(--border);
+  text-align:center;color:var(--muted);text-transform:none;letter-spacing:0;font-weight:600;
 }
+table.slotgrid th:first-child{border-left:none}
 table.slotgrid td.daylabel{
   font-size:11px;padding:2px 8px 2px 2px;border:none;white-space:nowrap;color:var(--text);
 }
 table.slotgrid td.daylabel.holiday{color:var(--red)}
-table.slotgrid td.cell{width:13px;height:17px;border:1px solid #e8ebf0;background:#fff;
+table.slotgrid td.cell{width:17px;height:21px;border:1px solid #eceff3;background:#fff;
   cursor:crosshair;padding:0}
+table.slotgrid td.cell.hb{border-left-color:#c4ccd8}   /* full-hour boundary */
+table.slotgrid td.cell.hb6{border-left-color:#93a0b4}  /* every 6 hours */
 table.slotgrid td.cell.work{background:var(--workbg)}
 table.slotgrid td.cell.offday{background:var(--offhours)}
 table.slotgrid td.cell.holiday,table.slotgrid td.cell.weekend{background:var(--weekend)}
@@ -229,7 +232,12 @@ table.slotgrid td.cell.past{
 #status .badge.ok{background:#dcfce7;color:#15803d}
 #status .badge.bad{background:#fee2e2;color:#b91c1c}
 #status b.bad{color:var(--red)}
-#btnExport{margin-left:auto}
+.zoom-group{display:flex;gap:0;margin-left:auto;border-radius:8px;overflow:hidden}
+.zoom-group .btn{border-radius:0}
+.zoom-group .btn:first-child{border-radius:8px 0 0 8px}
+.zoom-group .btn:last-child{border-radius:0 8px 8px 0}
+.zoom-group .btn+.btn{border-left:none}
+#btnExport{margin-left:0}
 #ganttwrap{
   overflow:auto;background:var(--panel);border:1px solid var(--border);
   border-radius:var(--radius);box-shadow:var(--shadow);
@@ -266,6 +274,8 @@ table.slotgrid td.cell.past{
 .modal-body .field{margin-bottom:12px}
 .modal-body input[type=text],.modal-body input[type=number]{width:100%}
 .modal-body input[type=number]{width:110px}
+.unit-names{display:grid;grid-template-columns:1fr 1fr;gap:6px;max-height:210px;overflow-y:auto}
+.unit-names input{width:100%;font-size:13px}
 .modal-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
 
 /* ---------- toasts ---------- */

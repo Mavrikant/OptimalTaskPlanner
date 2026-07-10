@@ -69,8 +69,15 @@ class WorkCalendar(BaseModel):
 class EquipmentType(BaseModel):
     name: str
     count: int = Field(ge=0, le=99)
+    # Optional custom names for the physical units; empty = auto ("VSG-1", "VSG-2", ...).
+    unit_names: list[str] = Field(default_factory=list)
     # Per-unit maintenance/booking windows: unit name -> ISO date -> unavailable slot indices.
     unavailable: dict[str, dict[str, list[int]]] = Field(default_factory=dict)
+
+    @field_validator("unit_names")
+    @classmethod
+    def _strip_names(cls, v: list[str]) -> list[str]:
+        return [s.strip() for s in v]
 
     @field_validator("unavailable")
     @classmethod
@@ -83,10 +90,31 @@ class EquipmentType(BaseModel):
                         raise ValueError(f"slot index {s} out of range 0..{SLOTS_PER_DAY - 1}")
         return v
 
+    @model_validator(mode="after")
+    def _names_match_count(self) -> EquipmentType:
+        if self.unit_names:
+            if len(self.unit_names) != self.count:
+                raise ValueError("unit_names must have exactly `count` entries")
+            if any(not n for n in self.unit_names) or \
+                    len(set(self.unit_names)) != len(self.unit_names):
+                raise ValueError("unit_names must be unique and non-empty")
+        return self
 
-class Deadline(BaseModel):
+
+def equipment_units(eq: EquipmentType) -> list[str]:
+    """Physical unit names of a type: custom names if set, else auto-numbered."""
+    if eq.unit_names:
+        return list(eq.unit_names)
+    if eq.count == 1:
+        return [eq.name]
+    return [f"{eq.name}-{i + 1}" for i in range(eq.count)]
+
+
+class TimePoint(BaseModel):
+    """A point in time on the 30-minute grid (used for deadlines / earliest starts)."""
+
     date: str          # ISO date, e.g. "2026-07-15"
-    time: str = "17:00"  # HH:MM on a 30-minute boundary; the task must END by then
+    time: str = "17:00"  # HH:MM on a 30-minute boundary
 
     @field_validator("date")
     @classmethod
@@ -111,7 +139,8 @@ class Task(BaseModel):
     minutes: int = Field(ge=SLOT_MINUTES, le=MAX_TASK_MINUTES)
     work_hours_only: bool = False
     continue_next_day: bool = False
-    deadline: Deadline | None = None
+    deadline: TimePoint | None = None          # task must END by this time
+    earliest_start: TimePoint | None = None    # task may not START before this time
     resources: dict[str, int] = Field(default_factory=dict)  # equipment type -> quantity
     # Slot preferences: ISO date -> {slot index (as str): "preferred" | "unavailable"}
     slots: dict[str, dict[str, str]] = Field(default_factory=dict)
@@ -166,3 +195,13 @@ class Project(BaseModel):
     equipment: list[EquipmentType] = Field(default_factory=list)
     tasks: list[Task] = Field(default_factory=list)  # order = priority (top first)
     schedule: Schedule | None = None
+
+    @model_validator(mode="after")
+    def _unique_unit_names(self) -> Project:
+        seen: set[str] = set()
+        for eq in self.equipment:
+            for unit in equipment_units(eq):
+                if unit in seen:
+                    raise ValueError(f"duplicate unit name '{unit}' across equipment types")
+                seen.add(unit)
+        return self
