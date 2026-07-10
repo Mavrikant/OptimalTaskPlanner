@@ -863,11 +863,10 @@ function buildGanttSVG(forExport) {
         `stroke="${isHour ? "#d4dae3" : "#e7eaf0"}"/>`;
     }
   }
-  // unit rows
+  // unit rows (labels are drawn last, in a scroll-pinned group)
   units.forEach((u, i) => {
     const y = TOP + i * ROW;
     s += `<line x1="${LEFT}" y1="${y}" x2="${W - 10}" y2="${y}" stroke="#eee"/>`;
-    s += `<text x="${LEFT - 8}" y="${y + ROW / 2 + 4}" text-anchor="end" fill="#333">${esc(u)}</text>`;
   });
   s += `<line x1="${LEFT}" y1="${TOP + units.length * ROW}" x2="${W - 10}" ` +
     `y2="${TOP + units.length * ROW}" stroke="#eee"/>`;
@@ -900,8 +899,24 @@ function buildGanttSVG(forExport) {
       });
     });
   });
+  if (forExport) {
+    // static export: bake the label column into the SVG
+    s += `<g><rect x="0" y="0" width="${LEFT - 4}" height="${H}" fill="#fff"/>`;
+    units.forEach((u, i) => {
+      const y = TOP + i * ROW;
+      s += `<text x="${LEFT - 12}" y="${y + ROW / 2 + 4}" text-anchor="end" fill="#333">${esc(u)}</text>`;
+    });
+    s += "</g></svg>";
+    return s;
+  }
   s += "</svg>";
-  return s;
+  // CSS-sticky label column: unit names stay visible while the timeline scrolls
+  let labels = `<div class="gantt-sticky"><div class="gantt-labels-col" style="height:${H}px;width:${LEFT - 4}px">`;
+  units.forEach((u, i) => {
+    labels += `<div class="gantt-label" style="top:${TOP + i * ROW}px;height:${ROW}px">${esc(u)}</div>`;
+  });
+  labels += "</div></div>";
+  return labels + s;
 }
 
 function attachTooltips(wrap) {
