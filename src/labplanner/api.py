@@ -6,28 +6,16 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import ValidationError
 
-from . import __version__, calendar_utils, export_xlsx, solver
+from . import __version__, calendar_utils, solver
 from .config import Settings
 from .models import SLOTS_PER_DAY, Project
 from .storage import ProjectStore
 
 STATIC_DIR = Path(__file__).parent / "static"
-XLSX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-
-
-class XlsxExport(BaseModel):
-    filename: str = "export.xlsx"
-    sheet_name: str = "Sheet1"
-    columns: list[str] = Field(default_factory=list)
-    rows: list[list] = Field(default_factory=list)
-    chart_png_base64: str | None = None   # data URL or bare base64 of a PNG
-    chart_sheet_name: str = "Chart"
-    chart_w: int | None = None            # display size in px (logical, not raster)
-    chart_h: int | None = None
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -170,32 +158,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         except FileNotFoundError as e:
             raise HTTPException(status_code=404, detail=f"Unknown backup: {name}") from e
         return {"ok": True}
-
-    # ---- exports --------------------------------------------------------------
-
-    @app.post("/api/export/xlsx")
-    def export_to_xlsx(payload: XlsxExport) -> Response:
-        chart_png = None
-        if payload.chart_png_base64:
-            import base64
-            raw = payload.chart_png_base64.split(",", 1)[-1]  # tolerate a data: URL prefix
-            try:
-                chart_png = base64.b64decode(raw)
-            except (ValueError, TypeError) as e:
-                raise HTTPException(status_code=422, detail="Invalid chart image") from e
-        size = (payload.chart_w, payload.chart_h) if payload.chart_w and payload.chart_h else None
-        data = export_xlsx.build_workbook(
-            payload.columns, payload.rows, payload.sheet_name,
-            chart_png=chart_png, chart_sheet_name=payload.chart_sheet_name, chart_size=size,
-        )
-        safe = Path(payload.filename).name or "export.xlsx"
-        if not safe.lower().endswith(".xlsx"):
-            safe += ".xlsx"
-        return Response(
-            content=data,
-            media_type=XLSX_MEDIA_TYPE,
-            headers={"Content-Disposition": f'attachment; filename="{safe}"'},
-        )
 
     @app.get("/api/holidays/countries")
     def holiday_countries() -> dict:

@@ -96,11 +96,6 @@
   "tasks.paintHint": "boyamak için sürükleyin",
   "tasks.deleteConfirm": "'{name}' görevi silinsin mi?",
   "sch.export": "HTML dışa aktar",
-  "sch.exportMenu": "Dışa aktar",
-  "sch.exportXlsx": "Excel dışa aktar",
-  "sch.sheetChart": "Grafik",
-  "sch.sheetTasks": "Görevler",
-  "sch.exportIcs": "ICS takvimi dışa aktar",
   "sch.pinHere": "Bu başlangıca sabitle",
   "sch.pinned": "Görev planlanan başlangıcına sabitlendi.",
   "sch.unpinned": "Sabitleme kaldırıldı.",
@@ -185,5 +180,5 @@
   "info.tasks.title": "Görevler",
   "info.tasks.body": "<p>Her görev bir laboratuvar işini tanımlar. Liste sırası <b>önceliktir</b>: satırları sürükleyin — görev ne kadar üstteyse çözücü onu o kadar erken başlatmaya çalışır.</p><ul><li><b>Süre</b> yarım saatlik adımlarla girilir.</li><li><b>Sadece mesai saatleri</b> görevi çalışma takvimi içinde tutar; bir iş gününden uzun görevler için <b>ertesi gün devam et</b>'i açın.</li><li><b>En erken başlangıç</b> ve <b>termin</b>, görevin çalışabileceği aralığı sınırlar; <b>sabitlenmiş başlangıç</b> tam saate kilitler.</li><li><b>Bağımlılıklar</b> görevi, seçilen diğer görevler bitene kadar bekletir.</li><li><b>Durum</b> yeniden planlamayı yönetir: tamamlananlar çizelgeden düşer, devam edenler yeniden çözümde yerini korur.</li><li><b>Gerekli kaynaklar</b> ekipmanı tip ve adet olarak ister (havuzdaki adetle sınırlı).</li><li>Zaman ızgarasında görevin kaçınması gereken saatleri (<b>müsait değil</b>) veya yeğlemesi gerekenleri (<b>tercih edilen</b>) boyayın. Sağ tık tercihli boyar, orta tık temizler.</li></ul>",
   "info.schedule.title": "Çizelgeyi okuma",
-  "info.schedule.body": "<p>Her satır bir fiziksel birimdir; renkli bloklar görev rezervasyonlarıdır. Bir görev aynı anda birden çok satırı kullanabilir.</p><ul><li>Gri bantlar mesai dışı saatleri, hafta sonlarını ve tatilleri gösterir; kırmızı kesikli çizgi <b>şimdi</b>yi işaretler.</li><li>Ayrıntı için bloğun üzerine gelin; alttaki tablo görev başına başlangıç, bitiş ve termin durumunu listeler.</li><li>Büyüteç düğmeleriyle yakınlaşın — saat ve yarım saat çizgileri belirir; kaydırırken birim adları solda sabit kalır.</li><li>Detay tablosundaki raptiye düğmesi, görevi bir sonraki çözüm için planlanan başlangıcına sabitler.</li><li><b>Dışa aktarma menüsü</b> buradakiyle aynı yakınlaştırmaya sahip tek dosyalık etkileşimli HTML raporu, iki sayfalı Excel çalışma kitabı (Gantt grafiği + görev listesi) veya Outlook/Google Takvim'e alınabilecek ICS takvimi indirir.</li></ul>"
+  "info.schedule.body": "<p>Her satır bir fiziksel birimdir; renkli bloklar görev rezervasyonlarıdır. Bir görev aynı anda birden çok satırı kullanabilir.</p><ul><li>Gri bantlar mesai dışı saatleri, hafta sonlarını ve tatilleri gösterir; kırmızı kesikli çizgi <b>şimdi</b>yi işaretler.</li><li>Ayrıntı için bloğun üzerine gelin; alttaki tablo görev başına başlangıç, bitiş ve termin durumunu listeler.</li><li>Büyüteç düğmeleriyle yakınlaşın — saat ve yarım saat çizgileri belirir; kaydırırken birim adları solda sabit kalır.</li><li>Detay tablosundaki raptiye düğmesi, görevi bir sonraki çözüm için planlanan başlangıcına sabitler.</li><li><b>HTML dışa aktar</b> buradakiyle aynı yakınlaştırma, tooltip ve detay tablosuna sahip tek dosyalık etkileşimli bir rapor indirir.</li></ul>"
 }

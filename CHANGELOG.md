@@ -22,8 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   public holidays with manual selection or country-based auto-fill.
 - Bilingual web UI (English/Turkish) with modals, toasts and a paintable slot grid.
 - Full-screen schedule view: zoomable SVG Gantt with rich hover tooltips, a
-  start/end details table, and exports: an interactive HTML report that shares the
-  Gantt's zoom, a two-sheet Excel workbook (chart + task list), and an ICS calendar.
+  start/end details table, and a self-contained interactive HTML report export
+  that shares the Gantt's zoom.
 - Dark mode, first-visit onboarding tour, per-section help screens,
   JSON-based locales, keyboard and touch accessibility.
 - Multiple projects (create, rename, duplicate, import/export, delete) with a
