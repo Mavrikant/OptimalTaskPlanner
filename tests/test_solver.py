@@ -2,7 +2,7 @@
 
 from datetime import datetime, timedelta
 
-from labplanner.models import Project
+from labplanner.models import Project, Schedule, ScheduledTask, ScheduleSegment
 from labplanner.solver import solve
 
 NOW = datetime(2026, 7, 6, 7, 0)  # Monday 07:00 -> first free slot = 14
@@ -235,3 +235,92 @@ def test_empty_project_is_trivially_optimal():
     assert s.status == "OPTIMAL"
     assert s.makespan_minutes == 0
     assert s.tasks == []
+
+
+def test_dependency_orders_tasks():
+    p = make_project([], [
+        make_task(id="a", minutes=120),
+        make_task(id="b", minutes=60, depends_on=["a"]),
+    ])
+    s = solve(p, now=NOW)
+    assert s.status == "OPTIMAL"
+    assert segs(s, 1)[0].start_slot >= segs(s, 0)[-1].end_slot
+
+
+def test_dependency_cycle_is_detected():
+    p = make_project([], [
+        make_task(id="a", depends_on=["b"]),
+        make_task(id="b", depends_on=["a"]),
+    ])
+    s = solve(p, now=NOW)
+    assert s.status == "INFEASIBLE"
+    assert "Dependency cycle" in s.message
+
+
+def test_pinned_start_is_exact():
+    p = make_project([], [make_task(minutes=60,
+                                    pinned_start={"date": DAY0, "time": "10:00"})])
+    s = solve(p, now=NOW)  # a free task would otherwise start at 07:00
+    assert s.status == "OPTIMAL"
+    assert segs(s)[0].start == f"{DAY0}T10:00"
+
+
+def test_impossible_pin_reports_reason():
+    # pinned on a Saturday for a work-hours-only task
+    p = make_project([], [make_task(minutes=60, work_hours_only=True,
+                                    pinned_start={"date": "2026-07-11", "time": "10:00"})])
+    s = solve(p, now=NOW)
+    assert s.status == "INFEASIBLE"
+    assert "pinned start" in s.message
+
+
+def test_done_task_is_excluded():
+    p = make_project([], [make_task(id="a", status="done"), make_task(id="b")])
+    s = solve(p, now=NOW)
+    assert [x.task_id for x in s.tasks] == ["b"]
+
+
+def test_in_progress_task_is_frozen_to_previous_place():
+    p = make_project(
+        [{"name": "Rig", "count": 2}],
+        [make_task(id="a", minutes=120, resources={"Rig": 1}, status="in_progress")],
+    )
+    p.schedule = Schedule(
+        status="OPTIMAL", horizon_start=DAY0,
+        tasks=[ScheduledTask(task_id="a", task_name="Task", units=["Rig-2"], segments=[
+            ScheduleSegment(start=f"{DAY0}T09:00", end=f"{DAY0}T11:00",
+                            start_slot=18, end_slot=22)])],
+    )
+    s = solve(p, now=NOW)  # a pending task would be pulled forward to 07:00
+    assert s.status == "OPTIMAL"
+    assert segs(s)[0].start == f"{DAY0}T09:00"
+    assert s.tasks[0].units == ["Rig-2"]
+
+
+def test_in_progress_task_finished_in_past_is_skipped():
+    p = make_project([], [make_task(id="a", minutes=60, status="in_progress"),
+                          make_task(id="b", minutes=60)])
+    p.schedule = Schedule(
+        status="OPTIMAL", horizon_start="2026-07-05",
+        tasks=[ScheduledTask(task_id="a", task_name="T", units=[], segments=[
+            ScheduleSegment(start="2026-07-05T08:00", end="2026-07-05T09:00",
+                            start_slot=16, end_slot=18)])],
+    )
+    s = solve(p, now=NOW)
+    assert [x.task_id for x in s.tasks] == ["b"]
+
+
+def test_infeasible_hint_names_the_blocking_deadline():
+    # both tasks need the single Rig inside the same one-hour deadline window
+    p = make_project(
+        [{"name": "Rig", "count": 1}],
+        [
+            make_task(id="a", name="Alpha", minutes=60, work_hours_only=True,
+                      resources={"Rig": 1}, deadline={"date": DAY0, "time": "09:00"}),
+            make_task(id="b", name="Beta", minutes=60, work_hours_only=True,
+                      resources={"Rig": 1}, deadline={"date": DAY0, "time": "09:00"}),
+        ],
+    )
+    s = solve(p, now=NOW)
+    assert s.status == "INFEASIBLE"
+    assert "Hint: Relaxing the deadline of task" in s.message

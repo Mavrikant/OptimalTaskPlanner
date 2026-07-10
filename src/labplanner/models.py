@@ -8,6 +8,7 @@ Absolute slot indices count from midnight of the horizon start day.
 from __future__ import annotations
 
 from datetime import date
+from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -141,6 +142,10 @@ class Task(BaseModel):
     continue_next_day: bool = False
     deadline: TimePoint | None = None          # task must END by this time
     earliest_start: TimePoint | None = None    # task may not START before this time
+    pinned_start: TimePoint | None = None      # task must START exactly at this time
+    depends_on: list[str] = Field(default_factory=list)  # ids of tasks that must end first
+    # done -> excluded from solving; in_progress -> frozen to its last scheduled place
+    status: Literal["pending", "in_progress", "done"] = "pending"
     resources: dict[str, int] = Field(default_factory=dict)  # equipment type -> quantity
     # Slot preferences: ISO date -> {slot index (as str): "preferred" | "unavailable"}
     slots: dict[str, dict[str, str]] = Field(default_factory=dict)
@@ -160,6 +165,17 @@ class Task(BaseModel):
                 if state not in SLOT_STATES:
                     raise ValueError(f"slot state must be one of {SLOT_STATES}, got {state!r}")
         return v
+
+    @field_validator("depends_on")
+    @classmethod
+    def _dedupe_deps(cls, v: list[str]) -> list[str]:
+        return list(dict.fromkeys(v))
+
+    @model_validator(mode="after")
+    def _no_self_dependency(self) -> Task:
+        if self.id in self.depends_on:
+            raise ValueError("a task cannot depend on itself")
+        return self
 
     @property
     def duration_slots(self) -> int:

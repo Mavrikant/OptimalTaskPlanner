@@ -98,3 +98,25 @@ def test_task_earliest_start_validation():
         make_task(earliest_start={"date": "2026-07-06", "time": "10:15"})
     task = make_task(earliest_start={"date": "2026-07-06", "time": "10:30"})
     assert task.earliest_start.slot_of_day == 21
+
+
+def test_task_pinned_start_validation():
+    with pytest.raises(ValidationError):
+        make_task(pinned_start={"date": "2026-07-06", "time": "10:15"})
+    task = make_task(pinned_start={"date": "2026-07-06", "time": "10:30"})
+    assert task.pinned_start.slot_of_day == 21
+
+
+def test_task_self_dependency_rejected():
+    with pytest.raises(ValidationError):
+        make_task(id="x", depends_on=["x"])
+    task = make_task(id="x", depends_on=["y", "y", "z"])
+    assert task.depends_on == ["y", "z"]  # deduped, order kept
+
+
+def test_task_status_validation():
+    assert make_task().status == "pending"
+    assert make_task(status="in_progress").status == "in_progress"
+    assert make_task(status="done").status == "done"
+    with pytest.raises(ValidationError):
+        make_task(status="paused")
