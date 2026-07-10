@@ -296,6 +296,19 @@ function applyEqChange(eq, newName, newCount, newUnitNames) {
     if (idx < newUnits.length && eq.unavailable[u]) remapped[newUnits[idx]] = eq.unavailable[u];
   });
   eq.unavailable = remapped;
+  // carry unit renames into the solved schedule so its assignments stay visible —
+  // a pure rename doesn't change the plan, only the labels
+  if (project.schedule && project.schedule.tasks) {
+    const renames = {};
+    oldUnits.forEach((u, idx) => {
+      if (idx < newUnits.length && newUnits[idx] !== u) renames[u] = newUnits[idx];
+    });
+    if (Object.keys(renames).length) {
+      project.schedule.tasks.forEach(stt => {
+        stt.units = stt.units.map(u => renames[u] || u);
+      });
+    }
+  }
 }
 
 $("#btnAddEq").onclick = () => eqModal(null);
