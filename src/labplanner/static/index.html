@@ -31,7 +31,18 @@
       <span class="sub" data-i18n="app.subtitle"></span>
     </div>
   </div>
+  <div class="proj-menu" id="projMenu">
+    <button id="projBtn" class="btn proj-btn" data-i18n-title="proj.menu"
+            aria-haspopup="true" aria-expanded="false">
+      <span data-icon="folder"></span><span id="projName" class="proj-name"></span>
+      <span data-icon="chevron"></span>
+    </button>
+    <div class="proj-list" id="projList" role="menu" hidden></div>
+    <input type="file" id="projImportFile" accept=".json" hidden>
+  </div>
   <span id="saveState" class="save-state"></span>
+  <button id="btnUndo" class="btn icon ghost" data-icon="undo" data-i18n-title="history.undo" disabled></button>
+  <button id="btnRedo" class="btn icon ghost" data-icon="redo" data-i18n-title="history.redo" disabled></button>
   <button id="btnTheme" class="btn icon ghost" data-i18n-title="theme.toggle"></button>
   <button id="btnTour" class="btn icon ghost" data-icon="help" data-i18n-title="ob.tour"></button>
   <div class="lang-menu" id="langMenu">

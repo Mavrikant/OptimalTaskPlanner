@@ -53,6 +53,12 @@ const ICONS = {
     `<line x1="16" y1="2" x2="16" y2="6"/>` +
     `<rect x="7" y="13" width="6" height="3" rx="1" fill="currentColor" stroke="none"/>` +
     `<rect x="11" y="17" width="7" height="3" rx="1" fill="currentColor" stroke="none" opacity=".55"/></svg>`,
+  folder: `${_S}<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 ` +
+    `0 0 1 2 2z"/></svg>`,
+  undo: `${_S}<polyline points="1 4 1 10 7 10"/>` +
+    `<path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>`,
+  redo: `${_S}<polyline points="23 4 23 10 17 10"/>` +
+    `<path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>`,
   pin: `${_S}<path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 ` +
     `15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 ` +
     `10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1z"/></svg>`,

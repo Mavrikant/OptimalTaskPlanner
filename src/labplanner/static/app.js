@@ -1,6 +1,9 @@
 "use strict";
 /* ================= state & core helpers ================= */
 let project = null, horizon = null, selectedId = null, selectedUnit = null, saveTimer = null;
+let currentPid = localStorage.getItem("labplanner.pid") || null;
+let projectList = [];
+const P = () => "/api/projects/" + currentPid;
 
 const $ = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
@@ -60,6 +63,7 @@ const isWork = (d, s) => !isOffDay(d) &&
 
 /* ================= save ================= */
 function markSave() {
+  histPush();
   const el = $("#saveState");
   el.textContent = t("save.saving"); el.classList.remove("error");
   clearTimeout(saveTimer);
@@ -67,9 +71,10 @@ function markSave() {
 }
 async function saveNow() {
   clearTimeout(saveTimer);
+  histPush();
   const el = $("#saveState");
   try {
-    const d = await api("/api/project", {
+    const d = await api(P(), {
       method: "PUT", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(project),
     });
@@ -81,6 +86,66 @@ async function saveNow() {
     throw e;
   }
 }
+
+/* ================= undo / redo ================= */
+/* Snapshot-based client history: every mutation calls markSave()/saveNow(),
+   which pushes the pre-mutation state (histLast) onto the undo stack. */
+let undoStack = [], redoStack = [], histLast = null, histMuted = false;
+const histSerialize = () => JSON.stringify(project);
+
+function histReset() {
+  undoStack = []; redoStack = [];
+  histLast = project ? histSerialize() : null;
+  updateHistButtons();
+}
+function histPush() {
+  if (histMuted || histLast == null || !project) return;
+  const cur = histSerialize();
+  if (cur === histLast) return;
+  undoStack.push(histLast);
+  if (undoStack.length > 50) undoStack.shift();
+  redoStack = [];
+  histLast = cur;
+  updateHistButtons();
+}
+function histApply(state) {
+  histMuted = true;
+  project = JSON.parse(state);
+  histLast = state;
+  if (!project.tasks.some(x => x.id === selectedId)) {
+    selectedId = project.tasks.length ? project.tasks[0].id : null;
+  }
+  saveNow().catch(() => {});
+  renderAll();
+  histMuted = false;
+  updateHistButtons();
+}
+function undo() {
+  if (!undoStack.length) return;
+  redoStack.push(histSerialize());
+  histApply(undoStack.pop());
+}
+function redo() {
+  if (!redoStack.length) return;
+  undoStack.push(histSerialize());
+  histApply(redoStack.pop());
+}
+function updateHistButtons() {
+  $("#btnUndo").disabled = !undoStack.length;
+  $("#btnRedo").disabled = !redoStack.length;
+}
+$("#btnUndo").onclick = undo;
+$("#btnRedo").onclick = redo;
+document.addEventListener("keydown", e => {
+  if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+  const k = e.key.toLowerCase();
+  if (k !== "z" && k !== "y") return;
+  const tag = (document.activeElement || {}).tagName;
+  if (["INPUT", "SELECT", "TEXTAREA"].includes(tag)) return;  // keep native text undo
+  if (!$("#modalBack").hidden || !$("#onboardBack").hidden) return;
+  e.preventDefault();
+  if (k === "y" || (k === "z" && e.shiftKey)) redo(); else undo();
+});
 
 /* ================= toasts & modal ================= */
 function toast(msg, type = "info") {
@@ -285,6 +350,157 @@ $("#langBtn").onclick = e => {
 document.addEventListener("click", e => {
   if (!e.target.closest("#langMenu")) closeLangList();
 });
+
+/* ================= project switcher ================= */
+function renderProjectLabel() {
+  $("#projName").textContent = project ? project.name : "";
+}
+function closeProjMenu() {
+  $("#projList").hidden = true;
+  $("#projBtn").setAttribute("aria-expanded", "false");
+}
+document.addEventListener("click", e => {
+  if (!e.target.closest("#projMenu")) closeProjMenu();
+});
+
+async function switchProject(pid) {
+  if (pid !== currentPid) {
+    await saveNow().catch(() => {});
+    currentPid = pid;
+    localStorage.setItem("labplanner.pid", pid);
+    ganttZoom = 1;
+    selectedId = null; selectedUnit = null;
+  }
+  await loadCurrent();
+}
+
+$("#projBtn").onclick = async e => {
+  e.stopPropagation();
+  const list = $("#projList");
+  if (!list.hidden) { closeProjMenu(); return; }
+  projectList = (await api("/api/projects")).projects;
+  list.innerHTML = "";
+  projectList.forEach(p => {
+    const b = document.createElement("button");
+    b.className = "proj-item"; b.setAttribute("role", "menuitem");
+    b.innerHTML = `<span class="proj-item-name">${esc(p.name)}</span>` +
+      (p.id === currentPid ? `<span class="check">${icon("check")}</span>` : "");
+    b.onclick = () => { closeProjMenu(); switchProject(p.id); };
+    list.appendChild(b);
+  });
+  const sep = () => {
+    const s = document.createElement("div");
+    s.className = "proj-sep"; list.appendChild(s);
+  };
+  const item = (ic, key, fn, danger) => {
+    const b = document.createElement("button");
+    b.className = "proj-item" + (danger ? " danger" : "");
+    b.setAttribute("role", "menuitem");
+    b.innerHTML = `${icon(ic)}<span>${esc(t(key))}</span>`;
+    b.onclick = () => { closeProjMenu(); fn(); };
+    list.appendChild(b);
+  };
+  sep();
+  item("plus", "proj.new", newProject);
+  item("upload", "proj.import", () => $("#projImportFile").click());
+  sep();
+  item("pencil", "proj.rename", renameProject);
+  item("copy", "proj.duplicate", duplicateProject);
+  item("download", "proj.export", exportProject);
+  item("calendar", "proj.backups", showBackups);
+  item("trash", "proj.delete", deleteProject, true);
+  list.hidden = false;
+  $("#projBtn").setAttribute("aria-expanded", "true");
+};
+
+function newProject() {
+  openModal({
+    title: t("proj.new"),
+    body: `<div class="field"><label>${t("proj.name")}</label>
+      <input id="projNameInput" type="text" value=""></div>`,
+    onOk: () => {
+      const name = $("#projNameInput").value.trim();
+      if (!name) return false;
+      api("/api/projects", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      }).then(d => { toast(t("proj.created"), "success"); switchProject(d.id); })
+        .catch(err => toast(err.message, "error"));
+    },
+  });
+}
+function renameProject() {
+  openModal({
+    title: t("proj.rename"),
+    body: `<div class="field"><label>${t("proj.name")}</label>
+      <input id="projNameInput" type="text" value="${esc(project.name)}"></div>`,
+    onOk: () => {
+      const name = $("#projNameInput").value.trim();
+      if (!name) return false;
+      api(P(), {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      }).then(() => { project.name = name; histReset(); renderProjectLabel(); })
+        .catch(err => toast(err.message, "error"));
+    },
+  });
+}
+async function duplicateProject() {
+  const d = await api(`${P()}/duplicate`, { method: "POST" });
+  toast(t("proj.created"), "success");
+  await switchProject(d.id);
+}
+function exportProject() {
+  const safe = (project.name || "project").replace(/[^\w-]+/g, "_");
+  downloadBlob(JSON.stringify(project, null, 2), "application/json",
+    `labplanner-${safe}.json`);
+}
+$("#projImportFile").onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    const raw = JSON.parse(await f.text());
+    const d = await api("/api/projects/import", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(raw),
+    });
+    toast(t("proj.created"), "success");
+    await switchProject(d.id);
+  } catch (_) { toast(t("proj.importFailed"), "error"); }
+  e.target.value = "";
+};
+async function deleteProject() {
+  if (!await confirmModal(t("proj.delete"),
+    t("proj.deleteConfirm", { name: project.name }))) return;
+  await api(P(), { method: "DELETE" });
+  currentPid = null;
+  await loadProjects();
+  await loadCurrent();
+}
+async function showBackups() {
+  const d = await api(`${P()}/backups`);
+  const rows = d.backups.length
+    ? d.backups.map(b =>
+      `<div class="backup-row"><span>${esc(fmtDT(b.created_at))}</span>
+         <button class="btn small" data-b="${esc(b.name)}">${esc(t("proj.backupRestore"))}</button>
+       </div>`).join("")
+    : `<p class="muted small">${t("proj.backupsEmpty")}</p>`;
+  openModal({
+    title: t("proj.backupsTitle"),
+    body: `<div class="backup-list">${rows}</div>`,
+    hideCancel: true, wide: true,
+  });
+  document.querySelectorAll("#modalBody [data-b]").forEach(btn => {
+    btn.onclick = async () => {
+      const name = btn.dataset.b;
+      closeModal();
+      if (!await confirmModal(t("proj.backupsTitle"),
+        t("proj.backupRestoreConfirm"), t("proj.backupRestore"))) return;
+      await api(`${P()}/backups/${name}/restore`, { method: "POST" });
+      await loadCurrent();
+      toast(t("proj.backupRestored"), "success");
+    };
+  });
+}
 
 /* ================= equipment pool ================= */
 const autoUnitNames = (name, count) =>
@@ -1031,7 +1247,7 @@ $("#btnSolve").onclick = async () => {
   btn.disabled = true; label.textContent = t("app.solving");
   try {
     await saveNow(); // flush pending edits first
-    const d = await api("/api/solve", { method: "POST" });
+    const d = await api(`${P()}/solve`, { method: "POST" });
     project.schedule = d.schedule; horizon = d.horizon;
     activateTab("schedule");
   } catch (e) {
@@ -1429,6 +1645,7 @@ window.addEventListener("resize", () => {
 function renderAll() {
   applyI18n();
   renderLangMenu();
+  renderProjectLabel();
   renderResources();
   renderUnitPanel();
   renderWorkCalendar();
@@ -1445,12 +1662,35 @@ async function loadVersion() {
   } catch (_) { /* footer just stays without a version */ }
 }
 
-async function load() {
-  const d = await api("/api/project");
+async function loadProjects() {
+  projectList = (await api("/api/projects")).projects;
+  if (!projectList.length) {  // e.g. the last project was just deleted
+    await api("/api/projects", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    projectList = (await api("/api/projects")).projects;
+  }
+  if (!currentPid || !projectList.some(p => p.id === currentPid)) {
+    currentPid = projectList[0].id;
+  }
+  localStorage.setItem("labplanner.pid", currentPid);
+}
+
+async function loadCurrent() {
+  const d = await api(P());
   project = d.project; horizon = d.horizon;
-  if (project.tasks.length && !selectedId) selectedId = project.tasks[0].id;
+  if (!project.tasks.some(x => x.id === selectedId)) {
+    selectedId = project.tasks.length ? project.tasks[0].id : null;
+  }
+  histReset();
   window.__appReady = true;
   renderAll();
+}
+
+async function load() {
+  await loadProjects();
+  await loadCurrent();
   loadCountries(); // async, non-blocking
   loadVersion();
   if (!localStorage.getItem("labplanner.onboarded")) showOnboarding(0);
