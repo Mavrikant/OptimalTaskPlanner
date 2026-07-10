@@ -326,7 +326,7 @@ function eqModal(i) {
         }
         unitNames = raw;
       }
-      if (unitNames.join(" ") === autoUnitNames(name, count).join(" ")) {
+      if (unitNames.join("\u0000") === autoUnitNames(name, count).join("\u0000")) {
         unitNames = []; // identical to automatic naming — store canonically
       }
       const candidate = unitNames.length ? unitNames : autoUnitNames(name, count);
@@ -1210,7 +1210,86 @@ function renderDetailsTable() {
   $("#detailsPanel").hidden = false;
 }
 
-$("#btnExport").onclick = () => {
+function downloadBlob(content, type, filename) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([content], { type }));
+  a.download = filename; a.click();
+  URL.revokeObjectURL(a.href);
+}
+const exportStamp = () => (project.schedule.horizon_start || "export").replace(/-/g, "");
+
+$("#btnExport").onclick = e => {
+  e.stopPropagation();
+  const list = $("#exportList");
+  if (!list.hidden) { closeExportList(); return; }
+  list.innerHTML = "";
+  [["download", "sch.export", exportHTML],
+   ["sheet", "sch.exportCsv", exportCSV],
+   ["calendar", "sch.exportIcs", exportICS]].forEach(([ic, key, fn]) => {
+    const b = document.createElement("button");
+    b.className = "export-item"; b.setAttribute("role", "menuitem");
+    b.innerHTML = `${icon(ic)}<span>${esc(t(key))}</span>`;
+    b.onclick = () => { closeExportList(); fn(); };
+    list.appendChild(b);
+  });
+  list.hidden = false;
+  $("#btnExport").setAttribute("aria-expanded", "true");
+};
+function closeExportList() {
+  $("#exportList").hidden = true;
+  $("#btnExport").setAttribute("aria-expanded", "false");
+}
+document.addEventListener("click", e => {
+  if (!e.target.closest("#exportMenu")) closeExportList();
+});
+
+function exportCSV() {
+  const sc = project.schedule; if (!sc || !sc.tasks.length) return;
+  const q = v => `"${String(v).replace(/"/g, '""')}"`;
+  const header = [t("sch.colTask"), t("sch.colStart"), t("sch.colEnd"), t("sch.colDuration"),
+    t("sch.colUnits"), t("sch.colDeadline"), t("sch.colStatus")];
+  const rows = scheduleRows().sort((a, b) => a.start < b.start ? -1 : 1).map(r => [
+    r.stt.task_name,
+    r.start.replace("T", " "),
+    r.end.replace("T", " "),
+    fmtHours(r.minutes),
+    r.stt.units.join(", "),
+    r.task && r.task.deadline ? `${r.task.deadline.date} ${r.task.deadline.time}` : "",
+    r.deadline == null ? "" : (r.met ? t("sch.onTime") : t("sch.late")),
+  ]);
+  const csv = "\ufeff" +  // BOM so Excel opens UTF-8 correctly
+    [header, ...rows].map(row => row.map(q).join(",")).join("\r\n") + "\r\n";
+  downloadBlob(csv, "text/csv;charset=utf-8", `labplanner-schedule-${exportStamp()}.csv`);
+}
+
+function exportICS() {
+  const sc = project.schedule; if (!sc || !sc.tasks.length) return;
+  const fmt = iso => iso.replace(/[-:]/g, "") + "00";  // floating local time
+  const escText = v => String(v).replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,");
+  const stamp = new Date().toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z";
+  const lines = ["BEGIN:VCALENDAR", "VERSION:2.0",
+    "PRODID:-//LabPlanner//EN", "CALSCALE:GREGORIAN"];
+  scheduleRows().forEach(r => {
+    r.stt.segments.forEach((seg, i) => {
+      const part = r.stt.segments.length > 1 ? ` (${i + 1}/${r.stt.segments.length})` : "";
+      lines.push(
+        "BEGIN:VEVENT",
+        `UID:${r.stt.task_id}-${i}@labplanner`,
+        `DTSTAMP:${stamp}`,
+        `DTSTART:${fmt(seg.start)}`,
+        `DTEND:${fmt(seg.end)}`,
+        `SUMMARY:${escText(r.stt.task_name + part)}`,
+        `DESCRIPTION:${escText(`${t("tt.units")}: ${r.stt.units.join(", ")}`)}`,
+        "END:VEVENT",
+      );
+    });
+  });
+  lines.push("END:VCALENDAR");
+  downloadBlob(lines.join("\r\n") + "\r\n", "text/calendar;charset=utf-8",
+    `labplanner-schedule-${exportStamp()}.ics`);
+}
+
+function exportHTML() {
   const sc = project.schedule; if (!sc || !sc.tasks.length) return;
   const svg = buildGanttSVG(true);
   const cols = ["#", "sch.colTask", "sch.colStart", "sch.colEnd", "sch.colDuration",
@@ -1245,12 +1324,8 @@ $("#btnExport").onclick = () => {
 <h2>${esc(t("sch.details"))}</h2>
 <table><thead><tr>${cols}</tr></thead><tbody>${body}</tbody></table>
 </body></html>`;
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([html], { type: "text/html" }));
-  a.download = `labplanner-schedule-${(sc.horizon_start || "export").replace(/-/g, "")}.html`;
-  a.click();
-  URL.revokeObjectURL(a.href);
-};
+  downloadBlob(html, "text/html", `labplanner-schedule-${exportStamp()}.html`);
+}
 
 let resizeTimer = null;
 window.addEventListener("resize", () => {

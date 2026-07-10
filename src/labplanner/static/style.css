@@ -275,6 +275,19 @@ table.slotgrid td.cell.past{
 #status .badge.ok{background:var(--ok-bg);color:var(--ok-fg)}
 #status .badge.bad{background:var(--bad-bg);color:var(--bad-fg)}
 #status b.bad{color:var(--red)}
+.export-menu{position:relative}
+.export-list{
+  position:absolute;right:0;top:calc(100% + 6px);z-index:60;min-width:200px;
+  background:var(--panel);border:1px solid var(--border);border-radius:10px;
+  box-shadow:var(--shadow-lg);padding:5px;
+}
+.export-item{
+  display:flex;align-items:center;gap:10px;width:100%;border:none;background:none;
+  font:inherit;padding:8px 10px;border-radius:7px;cursor:pointer;color:var(--text);
+  text-align:left;
+}
+.export-item:hover{background:var(--accent-weak)}
+.export-item svg{width:15px;height:15px;color:var(--muted);flex:none}
 .zoom-group{display:flex;gap:0;margin-left:auto;border-radius:8px;overflow:hidden}
 .zoom-group .btn{border-radius:0}
 .zoom-group .btn:first-child{border-radius:8px 0 0 8px}
