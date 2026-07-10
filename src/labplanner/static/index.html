@@ -103,30 +103,32 @@
         <h2 data-i18n="res.workCalendar"></h2>
         <button id="btnInfoCalendar" class="btn icon ghost" data-icon="info" data-i18n-title="info.title"></button>
       </div>
-      <div class="row wrap" style="margin-bottom:14px">
-        <div class="field">
-          <label data-i18n="res.workStart"></label>
-          <select id="workStart"></select>
-        </div>
-        <div class="field">
-          <label data-i18n="res.workEnd"></label>
-          <select id="workEnd"></select>
-        </div>
-      </div>
-      <div class="field">
-        <label data-i18n="res.holidays"></label>
-        <div id="holidayChips" class="chips"></div>
-        <div class="row" style="margin-top:8px">
-          <input type="date" id="holidayDate">
-          <button id="btnAddHoliday" class="btn icon" data-icon="plus" data-i18n-title="res.add"></button>
-        </div>
-      </div>
-      <div class="field" style="margin-top:14px">
-        <label data-i18n="res.autofill"></label>
+      <div class="stack">
         <div class="row wrap">
-          <select id="holidayCountry"></select>
-          <select id="holidayYear"></select>
-          <button id="btnFillHolidays" class="btn icon accent" data-icon="wand" data-i18n-title="res.autofill"></button>
+          <div class="field">
+            <label data-i18n="res.workStart"></label>
+            <select id="workStart"></select>
+          </div>
+          <div class="field">
+            <label data-i18n="res.workEnd"></label>
+            <select id="workEnd"></select>
+          </div>
+        </div>
+        <div class="field">
+          <label data-i18n="res.holidays"></label>
+          <div id="holidayChips" class="chips"></div>
+          <div class="row" style="margin-top:8px">
+            <input type="date" id="holidayDate">
+            <button id="btnAddHoliday" class="btn icon" data-icon="plus" data-i18n-title="res.add"></button>
+          </div>
+        </div>
+        <div class="field">
+          <label data-i18n="res.autofill"></label>
+          <div class="row wrap">
+            <select id="holidayCountry"></select>
+            <select id="holidayYear"></select>
+            <button id="btnFillHolidays" class="btn icon accent" data-icon="wand" data-i18n-title="res.autofill"></button>
+          </div>
         </div>
       </div>
     </div>

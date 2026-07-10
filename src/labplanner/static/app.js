@@ -112,6 +112,7 @@ function histApply(state) {
   histMuted = true;
   project = JSON.parse(state);
   histLast = state;
+  editorModeFor = null;  // re-derive timing mode from the restored data
   if (!project.tasks.some(x => x.id === selectedId)) {
     selectedId = project.tasks.length ? project.tasks[0].id : null;
   }
@@ -983,6 +984,25 @@ $("#btnDelTask").onclick = async () => {
 };
 
 /* ================= task editor ================= */
+/* Timing is one exclusive mode derived from the data model, so earliest/
+   deadline (a window) and pinned start (a fixed point) can never conflict. */
+let editorMode = "free", editorModeFor = null;
+function currentTimingMode(task) {
+  if (task.pinned_start) return "fixed";
+  if (task.earliest_start || task.deadline) return "window";
+  return "free";
+}
+function setTimingMode(m) {
+  const task = selTask(); if (!task) return;
+  editorMode = m; editorModeFor = task.id;
+  if (m !== "fixed") task.pinned_start = null;
+  if (m !== "window") { task.earliest_start = null; task.deadline = null; }
+  if (m === "fixed" && !task.pinned_start) {
+    task.pinned_start = { date: horizon.day_dates[0], time: project.calendar.work_start };
+  }
+  markSave(); renderEditor(); renderTaskList();
+}
+
 function renderEditor() {
   const el = $("#editor");
   const task = selTask();
@@ -1020,6 +1040,47 @@ function renderEditor() {
     : `<span class="muted small">${t("tasks.noDeps")}</span>`;
   const maxHours = horizon.horizon_slots / 2;
 
+  // determine the timing mode: re-derive on task change or when it no longer
+  // matches the data (e.g. after undo); an empty "window" is a valid transient
+  const derivedMode = currentTimingMode(task);
+  if (editorModeFor !== task.id) { editorMode = derivedMode; editorModeFor = task.id; }
+  else if (editorMode === "fixed" && !task.pinned_start) editorMode = derivedMode;
+  else if (editorMode === "window" && task.pinned_start) editorMode = derivedMode;
+  // heal any stale pre-existing conflict (a fixed start clears window bounds)
+  if (editorMode === "fixed" && (task.earliest_start || task.deadline)) {
+    task.earliest_start = null; task.deadline = null; markSave();
+  }
+  const seg = (m, key) =>
+    `<label><input type="radio" name="timing" value="${m}" ${editorMode === m ? "checked" : ""}>
+       ${t(key)}</label>`;
+  let timingBody = "";
+  if (editorMode === "free") {
+    timingBody = `<div class="timing-body"><span class="muted small">${t("tasks.timingFreeHint")}</span></div>`;
+  } else if (editorMode === "window") {
+    timingBody = `<div class="timing-body">
+      <div class="timing-sub">
+        <label class="check"><input type="checkbox" id="fEsOn" ${es ? "checked" : ""}>
+          ${t("tasks.earliestStart")}</label>
+        <select id="fEsDate" ${es ? "" : "disabled"}>${esDateOpts}</select>
+        <select id="fEsTime" ${es ? "" : "disabled"}>${esTimeOpts}</select>
+      </div>
+      <div class="timing-sub">
+        <label class="check"><input type="checkbox" id="fDlOn" ${task.deadline ? "checked" : ""}>
+          ${t("tasks.deadline")}</label>
+        <select id="fDlDate" ${task.deadline ? "" : "disabled"}>${dlDateOpts}</select>
+        <select id="fDlTime" ${task.deadline ? "" : "disabled"}>${dlTimeOpts}</select>
+      </div>
+    </div>`;
+  } else {
+    timingBody = `<div class="timing-body">
+      <div class="timing-sub">
+        <select id="fPinDate">${pinDateOpts}</select>
+        <select id="fPinTime">${pinTimeOpts}</select>
+      </div>
+      <span class="muted small">${t("tasks.pinnedHint")}</span>
+    </div>`;
+  }
+
   el.innerHTML = `
   <div class="editor-head">
     <div class="field"><label>${t("tasks.name")}</label>
@@ -1031,7 +1092,7 @@ function renderEditor() {
       <select id="fStatus">${statusOpts}</select></div>
   </div>
   <div class="editor-section">
-    <div class="editor-grid">
+    <div class="editor-grid stretch">
       <div class="constraint toggles">
         <label class="check"><input type="checkbox" id="fWho" ${task.work_hours_only ? "checked" : ""}>
           ${t("tasks.workHoursOnly", { start: project.calendar.work_start, end: project.calendar.work_end })}</label>
@@ -1040,31 +1101,13 @@ function renderEditor() {
           ${t("tasks.continueNextDay")}</label>
       </div>
       <div class="constraint">
-        <label class="check"><input type="checkbox" id="fEsOn" ${es ? "checked" : ""}>
-          ${t("tasks.earliestStart")}</label>
-        <div class="constraint-controls">
-          <select id="fEsDate" ${es ? "" : "disabled"}>${esDateOpts}</select>
-          <select id="fEsTime" ${es ? "" : "disabled"}>${esTimeOpts}</select>
+        <div class="constraint-controls" style="justify-content:space-between">
+          <span class="section-title">${t("tasks.timing")}</span>
+          <div class="seg" role="radiogroup" id="timingSeg">
+            ${seg("free", "tasks.timingFree")}${seg("window", "tasks.timingWindow")}${seg("fixed", "tasks.timingFixed")}
+          </div>
         </div>
-        <div class="hint muted small">${t("tasks.earliestHint")}</div>
-      </div>
-      <div class="constraint">
-        <label class="check"><input type="checkbox" id="fDlOn" ${task.deadline ? "checked" : ""}>
-          ${t("tasks.deadline")}</label>
-        <div class="constraint-controls">
-          <select id="fDlDate" ${task.deadline ? "" : "disabled"}>${dlDateOpts}</select>
-          <select id="fDlTime" ${task.deadline ? "" : "disabled"}>${dlTimeOpts}</select>
-        </div>
-        <div class="hint muted small">${t("tasks.deadlineHint")}</div>
-      </div>
-      <div class="constraint">
-        <label class="check"><input type="checkbox" id="fPinOn" ${pin ? "checked" : ""}>
-          ${t("tasks.pinnedStart")}</label>
-        <div class="constraint-controls">
-          <select id="fPinDate" ${pin ? "" : "disabled"}>${pinDateOpts}</select>
-          <select id="fPinTime" ${pin ? "" : "disabled"}>${pinTimeOpts}</select>
-        </div>
-        <div class="hint muted small">${t("tasks.pinnedHint")}</div>
+        ${timingBody}
       </div>
     </div>
   </div>
@@ -1085,7 +1128,7 @@ function renderEditor() {
   <fieldset class="editor-section"><legend>${t("tasks.slots", { days: horizon.days })}</legend>
     <div class="row wrap" style="margin-bottom:8px">
       <span class="small muted">${t("tasks.paintMode")}</span>
-      <div class="paint-seg" role="radiogroup">
+      <div class="seg paint-seg" role="radiogroup">
         <label><input type="radio" name="paint" value="unavailable" checked>
           <span class="dot du"></span>${t("tasks.unavailable")}</label>
         <label><input type="radio" name="paint" value="preferred">
@@ -1123,50 +1166,41 @@ function renderEditor() {
   el.querySelector("#fCont").onchange = e => {
     task.continue_next_day = e.target.checked; markSave();
   };
-  const dlSync = () => {
-    if (el.querySelector("#fDlOn").checked) {
-      task.deadline = {
-        date: el.querySelector("#fDlDate").value,
-        time: slotHHMM(parseInt(el.querySelector("#fDlTime").value, 10)),
-      };
-    } else {
-      task.deadline = null;
-    }
-    el.querySelector("#fDlDate").disabled = !task.deadline;
-    el.querySelector("#fDlTime").disabled = !task.deadline;
-    markSave();
+  el.querySelectorAll("#timingSeg input[name=timing]").forEach(r => {
+    r.onchange = () => { if (r.checked) setTimingMode(r.value); };
+  });
+  // window mode: earliest + deadline sub-toggles (present only in that mode)
+  const bindWindow = (onId, dateId, timeId, key) => {
+    const toggle = el.querySelector("#" + onId);
+    if (!toggle) return;
+    const sync = () => {
+      if (el.querySelector("#" + onId).checked) {
+        task[key] = {
+          date: el.querySelector("#" + dateId).value,
+          time: slotHHMM(parseInt(el.querySelector("#" + timeId).value, 10)),
+        };
+      } else {
+        task[key] = null;
+      }
+      el.querySelector("#" + dateId).disabled = !task[key];
+      el.querySelector("#" + timeId).disabled = !task[key];
+      markSave(); renderTaskList();
+    };
+    [onId, dateId, timeId].forEach(id => { el.querySelector("#" + id).onchange = sync; });
   };
-  ["fDlOn", "fDlDate", "fDlTime"].forEach(id => { el.querySelector("#" + id).onchange = dlSync; });
-  const esSync = () => {
-    if (el.querySelector("#fEsOn").checked) {
-      task.earliest_start = {
-        date: el.querySelector("#fEsDate").value,
-        time: slotHHMM(parseInt(el.querySelector("#fEsTime").value, 10)),
-      };
-    } else {
-      task.earliest_start = null;
-    }
-    el.querySelector("#fEsDate").disabled = !task.earliest_start;
-    el.querySelector("#fEsTime").disabled = !task.earliest_start;
-    markSave();
-  };
-  ["fEsOn", "fEsDate", "fEsTime"].forEach(id => { el.querySelector("#" + id).onchange = esSync; });
-  const pinSync = () => {
-    if (el.querySelector("#fPinOn").checked) {
+  bindWindow("fDlOn", "fDlDate", "fDlTime", "deadline");
+  bindWindow("fEsOn", "fEsDate", "fEsTime", "earliest_start");
+  // fixed mode: the pinned start selects are always active (mode is the toggle)
+  if (el.querySelector("#fPinDate")) {
+    const pinSync = () => {
       task.pinned_start = {
         date: el.querySelector("#fPinDate").value,
         time: slotHHMM(parseInt(el.querySelector("#fPinTime").value, 10)),
       };
-    } else {
-      task.pinned_start = null;
-    }
-    el.querySelector("#fPinDate").disabled = !task.pinned_start;
-    el.querySelector("#fPinTime").disabled = !task.pinned_start;
-    markSave(); renderTaskList();
-  };
-  ["fPinOn", "fPinDate", "fPinTime"].forEach(id => {
-    el.querySelector("#" + id).onchange = pinSync;
-  });
+      markSave(); renderTaskList();
+    };
+    ["fPinDate", "fPinTime"].forEach(id => { el.querySelector("#" + id).onchange = pinSync; });
+  }
   el.querySelector("#fStatus").onchange = e => {
     task.status = e.target.value;
     markSave(); renderTaskList();
@@ -1694,6 +1728,7 @@ async function loadProjects() {
 async function loadCurrent() {
   const d = await api(P());
   project = d.project; horizon = d.horizon;
+  editorModeFor = null;  // re-derive timing mode for the loaded project
   if (!project.tasks.some(x => x.id === selectedId)) {
     selectedId = project.tasks.length ? project.tasks[0].id : null;
   }
