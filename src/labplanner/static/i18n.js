@@ -147,6 +147,80 @@ const I18N = {
     "footer.tagline": "Open-source optimal lab scheduling",
     "footer.powered": "Built with OR-Tools CP-SAT & FastAPI",
     "footer.license": "MIT License",
+
+    "info.title": "About this section",
+    "info.solve.title": "How the schedule is solved",
+    "info.solve.body":
+      "<p>LabPlanner computes a <b>provably optimal</b> schedule using Google OR-Tools " +
+      "<b>CP-SAT</b>. Time is divided into 30-minute slots over the rolling planning " +
+      "horizon (today plus the next 13 days).</p>" +
+      "<p><b>Hard constraints</b> — every schedule satisfies all of these:</p><ul>" +
+      "<li>Each task receives the requested quantity of every equipment type it needs.</li>" +
+      "<li>No physical unit serves two tasks in the same time slot.</li>" +
+      "<li>Units are never assigned inside their painted out-of-service windows.</li>" +
+      "<li>Work-hours-only tasks run within working hours and skip weekends and public " +
+      "holidays; “continue on next day” lets them split across days.</li>" +
+      "<li>Deadlines, earliest starts and slots painted unavailable are always honoured.</li>" +
+      "</ul><p><b>Optimisation goals</b> — applied in strict order of importance:</p><ol>" +
+      "<li><b>Makespan:</b> finish all tasks as early as possible.</li>" +
+      "<li><b>Preferred slots:</b> place tasks on as many painted preferred slots as possible.</li>" +
+      "<li><b>Priority:</b> start tasks nearer the top of the list earlier.</li></ol>" +
+      "<p><b>OPTIMAL</b> means no better schedule exists. <b>FEASIBLE</b> means the time " +
+      "limit was reached and the best schedule found so far is shown. <b>INFEASIBLE</b> " +
+      "means no schedule can satisfy every constraint — the message tells you which task " +
+      "or constraint to relax.</p>",
+    "info.pool.title": "Equipment pool",
+    "info.pool.body":
+      "<p>Define every equipment type your lab owns and how many physical units of it " +
+      "exist. Type name plus count expand into individual units (e.g. VSG ×3 → " +
+      "VSG-1…VSG-3), or give each unit its own name (serial number, brand) while editing " +
+      "the type.</p><ul>" +
+      "<li>Tasks request equipment by <b>type</b>; the solver picks which specific units " +
+      "to use.</li>" +
+      "<li>Renaming a type or unit safely carries task references, availability windows " +
+      "and the solved schedule along.</li>" +
+      "<li>Use the export/import buttons to share a pool between projects as JSON.</li></ul>",
+    "info.calendar.title": "Working calendar",
+    "info.calendar.body":
+      "<p>The working calendar applies to tasks marked <b>work hours only</b>. Other " +
+      "tasks may run around the clock.</p><ul>" +
+      "<li><b>Work start/end</b> are set in 30-minute steps and take effect immediately.</li>" +
+      "<li><b>Public holidays</b> are full days off, like weekends. Add dates manually or " +
+      "auto-fill a country's official holidays for a year.</li>" +
+      "<li>Holidays inside the horizon are shaded in the grids and the Gantt, with the " +
+      "day name shown in red.</li></ul>",
+    "info.avail.title": "Unit availability",
+    "info.avail.body":
+      "<p>Paint the time slots when a specific physical unit is out of service — " +
+      "maintenance, calibration, or booked outside LabPlanner.</p><ul>" +
+      "<li>Pick a unit, then click or drag over the grid to toggle slots.</li>" +
+      "<li>The solver never assigns that unit to any task during painted slots; other " +
+      "units of the same type remain usable.</li>" +
+      "<li>The eraser button clears every window of the selected unit.</li></ul>",
+    "info.tasks.title": "Tasks",
+    "info.tasks.body":
+      "<p>Each task describes one piece of lab work. The list order sets <b>priority</b>: " +
+      "drag rows — the higher a task sits, the earlier the solver tries to start it.</p><ul>" +
+      "<li><b>Duration</b> is set in half-hour steps.</li>" +
+      "<li><b>Work hours only</b> keeps the task inside the working calendar; enable " +
+      "<b>continue on next day</b> for tasks longer than one work day.</li>" +
+      "<li><b>Earliest start</b> and <b>deadline</b> bound when the task may run.</li>" +
+      "<li><b>Required resources</b> request equipment by type and quantity (limited to " +
+      "what the pool holds).</li>" +
+      "<li>In the slot grid, paint hours the task must avoid (<b>unavailable</b>) or " +
+      "should favour (<b>preferred</b>). Right-click paints preferred, middle-click " +
+      "clears.</li></ul>",
+    "info.schedule.title": "Reading the schedule",
+    "info.schedule.body":
+      "<p>Each row is one physical unit; coloured blocks are task reservations. One task " +
+      "may occupy several rows at once.</p><ul>" +
+      "<li>Grey bands are off-hours, weekends and holidays; the red dashed line marks " +
+      "<b>now</b>.</li>" +
+      "<li>Hover a block for full details; the table below lists start, end and deadline " +
+      "status per task.</li>" +
+      "<li>Zoom with the magnifier buttons — hour and half-hour gridlines appear as you " +
+      "zoom in; unit names stay pinned while scrolling.</li>" +
+      "<li><b>Export HTML</b> downloads a self-contained, shareable one-file report.</li></ul>",
   },
 
   tr: {
@@ -274,6 +348,86 @@ const I18N = {
     "footer.tagline": "Açık kaynak optimal laboratuvar planlama",
     "footer.powered": "OR-Tools CP-SAT ve FastAPI ile geliştirildi",
     "footer.license": "MIT Lisansı",
+
+    "info.title": "Bu bölüm hakkında",
+    "info.solve.title": "Plan nasıl çözülüyor?",
+    "info.solve.body":
+      "<p>LabPlanner, Google OR-Tools <b>CP-SAT</b> ile <b>kanıtlanabilir şekilde " +
+      "optimal</b> bir çizelge hesaplar. Zaman, kayan planlama ufku (bugün + 13 gün) " +
+      "boyunca 30 dakikalık dilimlere bölünür.</p>" +
+      "<p><b>Katı kısıtlar</b> — her çizelge bunların tümünü sağlar:</p><ul>" +
+      "<li>Her görev, ihtiyaç duyduğu her ekipman tipinden istenen adedi alır.</li>" +
+      "<li>Hiçbir fiziksel birim aynı zaman diliminde iki göreve hizmet etmez.</li>" +
+      "<li>Birimler, boyanan hizmet dışı pencerelerinde asla atanmaz.</li>" +
+      "<li>“Sadece mesai saatleri” görevleri çalışma takvimi içinde kalır; hafta sonları " +
+      "ve resmi tatiller atlanır. “Ertesi gün devam et” görevi günlere böler.</li>" +
+      "<li>Terminler, en erken başlangıçlar ve “müsait değil” boyadığınız saatler her " +
+      "zaman korunur.</li></ul>" +
+      "<p><b>Optimizasyon hedefleri</b> — kesin öncelik sırasıyla uygulanır:</p><ol>" +
+      "<li><b>Toplam süre:</b> tüm görevleri olabildiğince erken bitir.</li>" +
+      "<li><b>Tercih edilen saatler:</b> boyanan tercihli saatlerden olabildiğince çok " +
+      "kullan.</li>" +
+      "<li><b>Öncelik:</b> listede üstteki görevleri daha erken başlat.</li></ol>" +
+      "<p><b>OPTIMAL</b>: daha iyi bir çizelge yok. <b>FEASIBLE</b>: süre limitine " +
+      "ulaşıldı, o ana dek bulunan en iyi çizelge gösteriliyor. <b>INFEASIBLE</b>: tüm " +
+      "kısıtları birlikte sağlayan çizelge yok — mesaj hangi görevi veya kısıtı " +
+      "gevşetmeniz gerektiğini söyler.</p>",
+    "info.pool.title": "Ekipman havuzu",
+    "info.pool.body":
+      "<p>Laboratuvarınızdaki her ekipman tipini ve kaç fiziksel birim bulunduğunu " +
+      "tanımlayın. Tip adı + adet tek tek birimlere açılır (örn. VSG ×3 → VSG-1…VSG-3); " +
+      "dilerseniz tipi düzenlerken her birime kendi adını (seri no, marka) " +
+      "verebilirsiniz.</p><ul>" +
+      "<li>Görevler ekipmanı <b>tip</b> üzerinden ister; hangi birimlerin " +
+      "kullanılacağını çözücü seçer.</li>" +
+      "<li>Tip veya birim adını değiştirmek görev referanslarını, uygunluk pencerelerini " +
+      "ve çözülmüş çizelgeyi güvenle taşır.</li>" +
+      "<li>Havuzu projeler arasında paylaşmak için JSON dışa/içe aktarma düğmelerini " +
+      "kullanın.</li></ul>",
+    "info.calendar.title": "Çalışma takvimi",
+    "info.calendar.body":
+      "<p>Çalışma takvimi <b>sadece mesai saatleri</b> işaretli görevlere uygulanır. " +
+      "Diğer görevler günün her saatinde çalışabilir.</p><ul>" +
+      "<li><b>Mesai başlangıcı/bitişi</b> 30 dakikalık adımlarla ayarlanır ve anında " +
+      "geçerli olur.</li>" +
+      "<li><b>Resmi tatiller</b> hafta sonları gibi tam gün kapalıdır. Tarihleri elle " +
+      "ekleyin veya bir ülkenin resmi tatillerini yıl bazında otomatik doldurun.</li>" +
+      "<li>Ufuk içindeki tatiller ızgaralarda ve Gantt'ta gölgelenir, gün adı kırmızı " +
+      "gösterilir.</li></ul>",
+    "info.avail.title": "Birim uygunluğu",
+    "info.avail.body":
+      "<p>Belirli bir fiziksel birimin hizmet dışı olduğu saatleri boyayın — bakım, " +
+      "kalibrasyon veya LabPlanner dışında rezervasyon.</p><ul>" +
+      "<li>Bir birim seçin, ızgarada tıklayıp sürükleyerek saatleri işaretleyin.</li>" +
+      "<li>Çözücü boyalı saatlerde o birimi hiçbir göreve atamaz; aynı tipin diğer " +
+      "birimleri kullanılabilir kalır.</li>" +
+      "<li>Silgi düğmesi seçili birimin tüm pencerelerini temizler.</li></ul>",
+    "info.tasks.title": "Görevler",
+    "info.tasks.body":
+      "<p>Her görev bir laboratuvar işini tanımlar. Liste sırası <b>önceliktir</b>: " +
+      "satırları sürükleyin — görev ne kadar üstteyse çözücü onu o kadar erken " +
+      "başlatmaya çalışır.</p><ul>" +
+      "<li><b>Süre</b> yarım saatlik adımlarla girilir.</li>" +
+      "<li><b>Sadece mesai saatleri</b> görevi çalışma takvimi içinde tutar; bir iş " +
+      "gününden uzun görevler için <b>ertesi gün devam et</b>'i açın.</li>" +
+      "<li><b>En erken başlangıç</b> ve <b>termin</b>, görevin çalışabileceği aralığı " +
+      "sınırlar.</li>" +
+      "<li><b>Gerekli kaynaklar</b> ekipmanı tip ve adet olarak ister (havuzdaki adetle " +
+      "sınırlı).</li>" +
+      "<li>Zaman ızgarasında görevin kaçınması gereken saatleri (<b>müsait değil</b>) " +
+      "veya yeğlemesi gerekenleri (<b>tercih edilen</b>) boyayın. Sağ tık tercihli " +
+      "boyar, orta tık temizler.</li></ul>",
+    "info.schedule.title": "Çizelgeyi okuma",
+    "info.schedule.body":
+      "<p>Her satır bir fiziksel birimdir; renkli bloklar görev rezervasyonlarıdır. Bir " +
+      "görev aynı anda birden çok satırı kullanabilir.</p><ul>" +
+      "<li>Gri bantlar mesai dışı saatleri, hafta sonlarını ve tatilleri gösterir; " +
+      "kırmızı kesikli çizgi <b>şimdi</b>yi işaretler.</li>" +
+      "<li>Ayrıntı için bloğun üzerine gelin; alttaki tablo görev başına başlangıç, " +
+      "bitiş ve termin durumunu listeler.</li>" +
+      "<li>Büyüteç düğmeleriyle yakınlaşın — saat ve yarım saat çizgileri belirir; " +
+      "kaydırırken birim adları solda sabit kalır.</li>" +
+      "<li><b>HTML dışa aktar</b>, paylaşılabilir tek dosyalık bir rapor indirir.</li></ul>",
   },
 };
 

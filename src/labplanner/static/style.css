@@ -78,7 +78,10 @@ header{
 .btn.icon svg{width:16px;height:16px}
 .btn.icon.small{width:26px;height:26px}
 .btn.icon.small svg{width:14px;height:14px}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--muted)}
+.btn.ghost:hover{color:var(--accent);background:var(--accent-weak);border-color:transparent}
 .btn span[data-icon]{display:inline-flex}
+.solve-group{display:flex;align-items:center;gap:4px}
 
 /* ---------- tabs ---------- */
 nav.tabs{
@@ -282,6 +285,11 @@ table.slotgrid td.cell.past{
   background:var(--panel);border-radius:12px;box-shadow:var(--shadow-lg);
   width:100%;max-width:420px;padding:20px;
 }
+.modal.wide{max-width:580px}
+.info-body{font-size:13px;line-height:1.65;max-height:62vh;overflow-y:auto;padding-right:4px}
+.info-body p{margin:0 0 10px}
+.info-body ul,.info-body ol{margin:0 0 10px;padding-left:20px}
+.info-body li{margin-bottom:5px}
 .modal h3{font-size:16px;margin-bottom:14px}
 .modal-body .field{margin-bottom:12px}
 .modal-body input[type=text],.modal-body input[type=number]{width:100%}

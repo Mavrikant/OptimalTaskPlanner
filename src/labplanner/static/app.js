@@ -97,6 +97,8 @@ function openModal(opts) {
   $("#modalBody").innerHTML = opts.body;
   $("#modalOk").textContent = opts.okLabel || t("modal.ok");
   $("#modalCancel").textContent = t("modal.cancel");
+  $("#modalCancel").hidden = !!opts.hideCancel;
+  document.querySelector(".modal").classList.toggle("wide", !!opts.wide);
   $("#modalBack").hidden = false;
   const first = $("#modalBody").querySelector("input,select");
   if (first) { first.focus(); if (first.select) first.select(); }
@@ -128,6 +130,21 @@ function confirmModal(title, message, okLabel) {
     });
   });
 }
+
+/* section help screens (content lives in i18n.js as info.* keys) */
+function infoModal(key) {
+  openModal({
+    title: t(key + ".title"),
+    body: `<div class="info-body">${t(key + ".body")}</div>`,
+    hideCancel: true, wide: true,
+  });
+}
+$("#btnInfoSolve").onclick = () => infoModal("info.solve");
+$("#btnInfoPool").onclick = () => infoModal("info.pool");
+$("#btnInfoCalendar").onclick = () => infoModal("info.calendar");
+$("#btnInfoAvail").onclick = () => infoModal("info.avail");
+$("#btnInfoTasks").onclick = () => infoModal("info.tasks");
+$("#btnInfoSchedule").onclick = () => infoModal("info.schedule");
 
 /* ================= tabs & language ================= */
 function activateTab(name) {

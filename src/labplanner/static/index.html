@@ -30,10 +30,13 @@
     </button>
     <div class="lang-list" id="langList" role="menu" hidden></div>
   </div>
-  <button id="btnSolve" class="btn primary">
-    <span data-icon="play"></span>
-    <span data-i18n="app.solve"></span>
-  </button>
+  <div class="solve-group">
+    <button id="btnSolve" class="btn primary">
+      <span data-icon="play"></span>
+      <span data-i18n="app.solve"></span>
+    </button>
+    <button id="btnInfoSolve" class="btn icon ghost" data-icon="info" data-i18n-title="info.solve.title"></button>
+  </div>
 </header>
 
 <nav class="tabs" id="tabs">
@@ -60,6 +63,7 @@
           <button id="btnAddEq" class="btn icon accent" data-icon="plus" data-i18n-title="res.addEquipment"></button>
           <button id="btnExportPool" class="btn icon" data-icon="download" data-i18n-title="res.exportPool"></button>
           <button id="btnImportPool" class="btn icon" data-icon="upload" data-i18n-title="res.importPool"></button>
+          <button id="btnInfoPool" class="btn icon ghost" data-icon="info" data-i18n-title="info.title"></button>
           <input type="file" id="poolFile" accept=".json" hidden>
         </div>
       </div>
@@ -73,7 +77,10 @@
     </div>
 
     <div class="panel">
-      <h2 data-i18n="res.workCalendar"></h2>
+      <div class="panel-head">
+        <h2 data-i18n="res.workCalendar"></h2>
+        <button id="btnInfoCalendar" class="btn icon ghost" data-icon="info" data-i18n-title="info.title"></button>
+      </div>
       <div class="row wrap" style="margin-bottom:14px">
         <div class="field">
           <label data-i18n="res.workStart"></label>
@@ -108,6 +115,7 @@
         <div class="row">
           <select id="unitSelect"></select>
           <button id="btnClearUnit" class="btn icon" data-icon="eraser" data-i18n-title="res.clearUnit"></button>
+          <button id="btnInfoAvail" class="btn icon ghost" data-icon="info" data-i18n-title="info.title"></button>
         </div>
       </div>
       <p class="muted small" data-i18n="res.availHint"></p>
@@ -129,6 +137,8 @@
         <button id="btnAddTask" class="btn icon accent" data-icon="plus" data-i18n-title="tasks.add"></button>
         <button id="btnDupTask" class="btn icon" data-icon="copy" data-i18n-title="tasks.duplicate"></button>
         <button id="btnDelTask" class="btn icon danger" data-icon="trash" data-i18n-title="tasks.delete"></button>
+        <span style="flex:1"></span>
+        <button id="btnInfoTasks" class="btn icon ghost" data-icon="info" data-i18n-title="info.title"></button>
       </div>
       <ul id="taskList"></ul>
       <div class="muted small" data-i18n="tasks.priorityHint"></div>
@@ -146,6 +156,7 @@
       <button id="btnZoomIn" class="btn icon" data-icon="zoomIn" data-i18n-title="sch.zoomIn"></button>
     </div>
     <button id="btnExport" class="btn icon" data-icon="download" data-i18n-title="sch.export" disabled></button>
+    <button id="btnInfoSchedule" class="btn icon ghost" data-icon="info" data-i18n-title="info.title"></button>
   </div>
   <div id="ganttwrap"></div>
   <div class="panel" id="detailsPanel" hidden>

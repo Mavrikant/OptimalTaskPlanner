@@ -31,6 +31,8 @@ const ICONS = {
   fit: `${_S}<path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/>` +
     `<path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>`,
   check: `${_S}<polyline points="20 6 9 17 4 12"/></svg>`,
+  info: `${_S}<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/>` +
+    `<line x1="12" y1="8" x2="12.01" y2="8"/></svg>`,
   grip: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">' +
     '<circle cx="9" cy="6" r="1.4"/><circle cx="15" cy="6" r="1.4"/>' +
     '<circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/>' +
