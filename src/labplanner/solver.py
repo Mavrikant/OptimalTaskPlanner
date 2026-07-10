@@ -459,13 +459,11 @@ def solve(
             "No schedule satisfies all constraints together. Try relaxing deadlines, "
             "unavailable hours, equipment maintenance windows or resource demands."
         )
-        if explain:
-            hint = explain_infeasible(project, days=days, now=now)
-            if hint:
-                message += " Hint: " + hint
+        hints = explain_infeasible(project, days=days, now=now) if explain else []
         return Schedule(
             status="INFEASIBLE",
             message=message,
+            hints=hints,
             horizon_start=start.date().isoformat(),
         )
 
@@ -535,14 +533,16 @@ def explain_infeasible(
     now: datetime,
     per_try_limit_s: float = 3.0,
     budget_s: float = 15.0,
-) -> str:
-    """Find one constraint whose relaxation makes the project feasible.
+    max_hints: int = 3,
+) -> list[str]:
+    """Suggest constraints whose relaxation would make the project feasible.
 
-    Runs a bounded series of relaxed re-solves (family by family, then narrowing
-    to a single task within the first successful family). Returns an English
-    hint sentence, or "" when nothing conclusive was found within the budget.
+    Runs bounded relaxed re-solves family by family (narrowing to a single task
+    where possible) and returns up to ``max_hints`` distinct English suggestions,
+    ranked by the family order. Returns [] when nothing conclusive fits the budget.
     """
     t0 = time.time()
+    hints: list[str] = []
 
     def feasible(candidate: Project) -> bool:
         if time.time() - t0 > budget_s:
@@ -553,6 +553,8 @@ def explain_infeasible(
 
     try:
         for task_msg, family_msg, applies, relax in _RELAX_FAMILIES:
+            if len(hints) >= max_hints:
+                break
             relaxed = project.model_copy(deep=True)
             affected = [t for t in relaxed.tasks if applies(t)]
             if not affected:
@@ -561,21 +563,23 @@ def explain_infeasible(
                 relax(t)
             if not feasible(relaxed):
                 continue
+            hint = None
             for cand in affected[:8]:  # narrow to a single task if we can
                 single = project.model_copy(deep=True)
                 target = next(t for t in single.tasks if t.id == cand.id)
                 relax(target)
                 if feasible(single):
-                    return (f"Relaxing {task_msg.format(name=target.name)} "
+                    hint = (f"Relaxing {task_msg.format(name=target.name)} "
                             "makes the schedule feasible.")
-            return f"Relaxing {family_msg} makes the schedule feasible."
+                    break
+            hints.append(hint or f"Relaxing {family_msg} makes the schedule feasible.")
 
-        if any(eq.unavailable for eq in project.equipment):
+        if len(hints) < max_hints and any(eq.unavailable for eq in project.equipment):
             relaxed = project.model_copy(deep=True)
             for eq in relaxed.equipment:
                 eq.unavailable = {}
             if feasible(relaxed):
-                return "Relaxing the unit maintenance windows makes the schedule feasible."
+                hints.append("Relaxing the unit maintenance windows makes the schedule feasible.")
     except TimeoutError:
         pass
-    return ""
+    return hints

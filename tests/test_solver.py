@@ -359,4 +359,5 @@ def test_infeasible_hint_names_the_blocking_deadline():
     )
     s = solve(p, now=NOW)
     assert s.status == "INFEASIBLE"
-    assert "Hint: Relaxing the deadline of task" in s.message
+    assert s.hints, "expected at least one relaxation hint"
+    assert any("deadline of task" in h for h in s.hints)

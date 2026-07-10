@@ -1436,7 +1436,10 @@ function renderSchedule() {
   $("#btnExport").disabled = !(sc && sc.status !== "INFEASIBLE" && sc.tasks.length);
   if (!sc) { st.textContent = t("sch.notSolved"); wrap.innerHTML = ""; return; }
   if (sc.status === "INFEASIBLE") {
-    st.innerHTML = `<span class="badge bad">INFEASIBLE</span><span>${esc(sc.message)}</span>`;
+    const hints = (sc.hints || []).length
+      ? `<ul class="hints">${sc.hints.map(h => `<li>${esc(h)}</li>`).join("")}</ul>`
+      : "";
+    st.innerHTML = `<span class="badge bad">INFEASIBLE</span><span>${esc(sc.message)}</span>${hints}`;
     wrap.innerHTML = ""; return;
   }
   const stale = sc.horizon_start && sc.horizon_start !== horizon.start_date;
