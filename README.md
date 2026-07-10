@@ -37,7 +37,10 @@ a small FastAPI backend plus a dependency-free vanilla-JS frontend.
 - **Bilingual UI with dark mode** — English and Turkish out of the box; adding a language
   is one JSON file. Keyboard- and touch-friendly (focus traps, ARIA roles, pointer-event
   painting).
-- **Zero database** — your whole project is one human-readable `data/project.json`.
+- **Multiple projects with data safety** — switch between named projects from the header,
+  export/import them as JSON, undo/redo any change (Ctrl+Z/Y), and restore automatic
+  backup snapshots. Data files are schema-versioned and migrate forward automatically.
+- **Zero database** — every project is one human-readable JSON file under `data/projects/`.
 
 ## Quick start
 
@@ -74,7 +77,7 @@ Server-level settings come from CLI flags or environment variables:
 | ------------ | ----------------------------- | ----------- | ------------------------------- |
 | `--host`     | `LABPLANNER_HOST`             | `127.0.0.1` | Bind address                    |
 | `--port`     | `LABPLANNER_PORT`             | `8000`      | Port                            |
-| `--data-dir` | `LABPLANNER_DATA_DIR`         | `./data`    | Where `project.json` is stored  |
+| `--data-dir` | `LABPLANNER_DATA_DIR`         | `./data`    | Where projects & backups live   |
 | `--days`     | `LABPLANNER_DAYS`             | `14`        | Planning horizon length in days |
 | —            | `LABPLANNER_SOLVER_TIME_LIMIT`| `20`        | CP-SAT time limit (seconds)     |
 
@@ -88,9 +91,17 @@ The UI talks to a small JSON API you can also use directly
 
 | Method & path            | Description                                    |
 | ------------------------ | ---------------------------------------------- |
-| `GET /api/project`       | Project data + horizon info                    |
-| `PUT /api/project`       | Replace project data (validated)               |
-| `POST /api/solve`        | Solve and persist the schedule                 |
+| `GET /api/projects`      | List projects (id, name, updated)              |
+| `POST /api/projects`     | Create a project `{name}`                      |
+| `POST /api/projects/import` | Import a full project JSON as a new project |
+| `PATCH /api/projects/{id}`  | Rename `{name}`                             |
+| `DELETE /api/projects/{id}` | Delete (a final backup snapshot is kept)    |
+| `POST /api/projects/{id}/duplicate` | Duplicate                           |
+| `GET /api/projects/{id}` | Project data + horizon info                    |
+| `PUT /api/projects/{id}` | Replace project data (validated)               |
+| `POST /api/projects/{id}/solve` | Solve and persist the schedule          |
+| `GET /api/projects/{id}/backups` | List automatic backup snapshots        |
+| `POST /api/projects/{id}/backups/{name}/restore` | Restore a snapshot     |
 | `GET /api/holidays/countries` | Countries supported for holiday auto-fill |
 | `GET /api/holidays?country=TR&year=2026` | Official holidays for a country/year |
 | `GET /api/health`        | Liveness + version                             |

@@ -25,5 +25,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   start/end details table, and HTML / CSV / ICS exports.
 - Dark mode, first-visit onboarding tour, per-section help screens,
   JSON-based locales, keyboard and touch accessibility.
+- Multiple projects (create, rename, duplicate, import/export, delete) with a
+  header switcher; snapshot-based undo/redo (Ctrl+Z/Y).
+- Automatic backup snapshots with in-app restore; schema-versioned data files
+  with a forward-migration chain (the legacy single project.json migrates
+  losslessly on first start).
 - REST API (`/api/project`, `/api/solve`, `/api/holidays`, `/api/health`).
 - `labplanner` CLI entry point with `--host/--port/--data-dir/--days/--reload`.
