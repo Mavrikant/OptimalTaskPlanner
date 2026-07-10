@@ -126,6 +126,7 @@
   "modal.delete": "Delete",
   "unit.hours": "h",
   "lang.label": "Language",
+  "theme.toggle": "Toggle dark mode",
   "footer.tagline": "Open-source optimal lab scheduling",
   "footer.powered": "Built with OR-Tools CP-SAT & FastAPI",
   "footer.license": "MIT License",

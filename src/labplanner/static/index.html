@@ -3,7 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1a202c" media="(prefers-color-scheme: dark)">
 <title>LabPlanner</title>
+<script>/* set the theme before first paint to avoid a flash */
+(function () {
+  var t = localStorage.getItem("labplanner.theme") ||
+    (window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  document.documentElement.dataset.theme = t;
+})();
+</script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128197;</text></svg>">
 <link rel="stylesheet" href="/static/style.css">
 </head>
@@ -23,6 +32,7 @@
     </div>
   </div>
   <span id="saveState" class="save-state"></span>
+  <button id="btnTheme" class="btn icon ghost" data-i18n-title="theme.toggle"></button>
   <button id="btnTour" class="btn icon ghost" data-icon="help" data-i18n-title="ob.tour"></button>
   <div class="lang-menu" id="langMenu">
     <button id="langBtn" class="btn lang-btn" data-i18n-title="lang.label" aria-haspopup="true" aria-expanded="false">

@@ -173,6 +173,20 @@ function closeOnboarding() {
 }
 $("#obSkip").onclick = closeOnboarding;
 $("#obStart").onclick = closeOnboarding;
+
+/* dark / light theme toggle (initial value set by the inline head script) */
+function applyThemeIcon() {
+  $("#btnTheme").innerHTML =
+    icon(document.documentElement.dataset.theme === "dark" ? "sun" : "moon");
+}
+$("#btnTheme").onclick = () => {
+  const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  document.documentElement.dataset.theme = next;
+  localStorage.setItem("labplanner.theme", next);
+  applyThemeIcon();
+  if (project) renderSchedule(); // the Gantt SVG bakes theme colours in
+};
+applyThemeIcon();
 $("#obNext").onclick = () => showOnboarding(obStep + 1);
 $("#obPrev").onclick = () => showOnboarding(obStep - 1);
 $("#btnTour").onclick = () => showOnboarding(0);
@@ -942,6 +956,23 @@ const PALETTE = ["#4c78a8", "#f58518", "#54a24b", "#e45756", "#72b7b2", "#b279a2
   "#ff9da6", "#9d755d", "#bab0ac", "#d67195", "#86bcb6", "#e0ac2b",
   "#8390fa", "#59a14f", "#c66", "#69c"];
 
+/* Gantt SVG colours per theme (the HTML export is always rendered light) */
+const GANTT_COLORS = {
+  light: {
+    band: "#e6eaf1", off: "#eef1f6", dayline: "#c8ccd2", daytext: "#333",
+    holiday: "#dc2626", tick: "#999", rowline: "#eee", gridH: "#d4dae3",
+    gridHalf: "#e7eaf0", now: "#dc2626", label: "#333", blocktext: "#fff",
+  },
+  dark: {
+    band: "#232a38", off: "#1f2531", dayline: "#4a5368", daytext: "#d5dbe8",
+    holiday: "#f87171", tick: "#8b94a7", rowline: "#2c3342", gridH: "#3d4759",
+    gridHalf: "#2c3342", now: "#f87171", label: "#d5dbe8", blocktext: "#fff",
+  },
+};
+const ganttTheme = forExport =>
+  GANTT_COLORS[!forExport && document.documentElement.dataset.theme === "dark"
+    ? "dark" : "light"];
+
 function scheduleRows() {
   const sc = project.schedule;
   return sc.tasks.map((stt, ti) => {
@@ -1008,6 +1039,7 @@ function buildGanttSVG(forExport) {
   const wrapW = $("#ganttwrap").clientWidth || 1280;
   const pxs = forExport ? 2.4 : Math.max(1.9, (wrapW - LEFT - 26) / HS) * ganttZoom;
   const hourW = 2 * pxs;  // pixels per hour; drives gridline/label density
+  const th = ganttTheme(forExport);
   const W = Math.round(LEFT + HS * pxs + 12), H = TOP + units.length * ROW + 12;
   const sc = project.schedule;
   let s = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" ` +
@@ -1016,20 +1048,20 @@ function buildGanttSVG(forExport) {
   for (let d = 0; d < horizon.days; d++) {
     const x = LEFT + d * SPD * pxs;
     if (isOffDay(d)) {
-      s += `<rect x="${x}" y="${TOP}" width="${SPD * pxs}" height="${units.length * ROW}" fill="#e6eaf1"/>`;
+      s += `<rect x="${x}" y="${TOP}" width="${SPD * pxs}" height="${units.length * ROW}" fill="${th.band}"/>`;
     } else {
       s += `<rect x="${x}" y="${TOP}" width="${horizon.work_start_slot * pxs}" ` +
-        `height="${units.length * ROW}" fill="#eef1f6"/>`;
+        `height="${units.length * ROW}" fill="${th.off}"/>`;
       s += `<rect x="${x + horizon.work_end_slot * pxs}" y="${TOP}" ` +
-        `width="${(SPD - horizon.work_end_slot) * pxs}" height="${units.length * ROW}" fill="#eef1f6"/>`;
+        `width="${(SPD - horizon.work_end_slot) * pxs}" height="${units.length * ROW}" fill="${th.off}"/>`;
     }
-    s += `<line x1="${x}" y1="${TOP - 16}" x2="${x}" y2="${H - 10}" stroke="#c8ccd2"/>`;
+    s += `<line x1="${x}" y1="${TOP - 16}" x2="${x}" y2="${H - 10}" stroke="${th.dayline}"/>`;
     const dName = SPD * pxs >= 165 ? dayLabelLong(d) : dayLabel(d); // full name if it fits
-    s += `<text x="${x + 4}" y="${TOP - 22}" fill="${horizon.holiday_flags[d] ? "#dc2626" : "#333"}" ` +
+    s += `<text x="${x + 4}" y="${TOP - 22}" fill="${horizon.holiday_flags[d] ? th.holiday : th.daytext}" ` +
       `font-weight="600">${esc(dName)}</text>`;
     const labelStep = hourW >= 26 ? 1 : hourW >= 13 ? 3 : 6; // denser labels as you zoom
     for (let h = labelStep; h < 24; h += labelStep) {
-      s += `<text x="${LEFT + (d * SPD + h * 2) * pxs}" y="${TOP - 8}" fill="#999" ` +
+      s += `<text x="${LEFT + (d * SPD + h * 2) * pxs}" y="${TOP - 8}" fill="${th.tick}" ` +
         `font-size="9" text-anchor="middle">${h}</text>`;
     }
   }
@@ -1042,21 +1074,21 @@ function buildGanttSVG(forExport) {
       if (!isHour && hourW < 20) continue;    // half-hour lines need more room
       const x = LEFT + sl * pxs;
       s += `<line x1="${x}" y1="${TOP}" x2="${x}" y2="${gridBottom}" ` +
-        `stroke="${isHour ? "#d4dae3" : "#e7eaf0"}"/>`;
+        `stroke="${isHour ? th.gridH : th.gridHalf}"/>`;
     }
   }
   // unit rows (labels are drawn last, in a scroll-pinned group)
   units.forEach((u, i) => {
     const y = TOP + i * ROW;
-    s += `<line x1="${LEFT}" y1="${y}" x2="${W - 10}" y2="${y}" stroke="#eee"/>`;
+    s += `<line x1="${LEFT}" y1="${y}" x2="${W - 10}" y2="${y}" stroke="${th.rowline}"/>`;
   });
   s += `<line x1="${LEFT}" y1="${TOP + units.length * ROW}" x2="${W - 10}" ` +
-    `y2="${TOP + units.length * ROW}" stroke="#eee"/>`;
+    `y2="${TOP + units.length * ROW}" stroke="${th.rowline}"/>`;
   // now line
   const nowX = LEFT + horizon.now_slot * pxs;
-  s += `<line x1="${nowX}" y1="${TOP - 4}" x2="${nowX}" y2="${H - 10}" stroke="#dc2626" ` +
+  s += `<line x1="${nowX}" y1="${TOP - 4}" x2="${nowX}" y2="${H - 10}" stroke="${th.now}" ` +
     `stroke-width="1.5" stroke-dasharray="4 3"/>`;
-  s += `<text x="${nowX + 3}" y="${TOP - 8}" fill="#dc2626" font-size="9">${esc(t("sch.now"))}</text>`;
+  s += `<text x="${nowX + 3}" y="${TOP - 8}" fill="${th.now}" font-size="9">${esc(t("sch.now"))}</text>`;
   // task blocks
   sc.tasks.forEach((stt, ti) => {
     const color = PALETTE[ti % PALETTE.length];
@@ -1074,7 +1106,7 @@ function buildGanttSVG(forExport) {
         s += `<rect x="${x}" y="${y}" width="${w}" height="${ROW - 6}" rx="3" ` +
           `fill="${color}" fill-opacity="0.9"/>`;
         if (w > 40) {
-          s += `<text x="${x + 4}" y="${y + ROW / 2 + 1}" fill="#fff" font-size="10" ` +
+          s += `<text x="${x + 4}" y="${y + ROW / 2 + 1}" fill="${th.blocktext}" font-size="10" ` +
             `style="pointer-events:none">${esc(stt.task_name.slice(0, Math.floor(w / 6)))}</text>`;
         }
         s += "</g>";
@@ -1082,11 +1114,11 @@ function buildGanttSVG(forExport) {
     });
   });
   if (forExport) {
-    // static export: bake the label column into the SVG
+    // static export: bake the label column into the SVG (always light)
     s += `<g><rect x="0" y="0" width="${LEFT - 4}" height="${H}" fill="#fff"/>`;
     units.forEach((u, i) => {
       const y = TOP + i * ROW;
-      s += `<text x="${LEFT - 12}" y="${y + ROW / 2 + 4}" text-anchor="end" fill="#333">${esc(u)}</text>`;
+      s += `<text x="${LEFT - 12}" y="${y + ROW / 2 + 4}" text-anchor="end" fill="${th.label}">${esc(u)}</text>`;
     });
     s += "</g></svg>";
     return s;

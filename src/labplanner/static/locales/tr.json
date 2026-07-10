@@ -126,6 +126,7 @@
   "modal.delete": "Sil",
   "unit.hours": "sa",
   "lang.label": "Dil",
+  "theme.toggle": "Karanlık modu aç/kapat",
   "footer.tagline": "Açık kaynak optimal laboratuvar planlama",
   "footer.powered": "OR-Tools CP-SAT ve FastAPI ile geliştirildi",
   "footer.license": "MIT Lisansı",
