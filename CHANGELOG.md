@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Tag-triggered release process: `git tag vX.Y.Z && git push --tags` re-runs
+  the test suite, verifies `pyproject.toml` and `CHANGELOG.md` agree with the
+  tag, then builds and publishes a GitHub Release with the changelog section
+  as notes and the sdist/wheel attached. `scripts/prepare_release.py` bumps
+  the version and rolls the changelog in one step. See RELEASING.md.
+- `labplanner.__version__` is now read from installed package metadata
+  instead of being hardcoded, so it can no longer drift from
+  `pyproject.toml`.
+
 ### Fixed
 
 - CI: `test_large_project_solves_without_double_booking` was flaky on slower/shared

@@ -52,6 +52,8 @@ src/labplanner/
                       data-dir/days/solver-time-limit) from CLI flags or
                       LABPLANNER_* env vars.
   cli.py              `labplanner` entry point (argparse + uvicorn.run).
+  __init__.py          `__version__` is read from installed package metadata
+                      (`importlib.metadata`), not hardcoded — see RELEASING.md.
   static/
     app.js            Entire frontend — vanilla JS, no framework, no build step.
     i18n.js            LANGUAGES list + locale loading/switching.
@@ -64,6 +66,18 @@ tests/
   test_solver.py        Solver behavior — the largest suite; add a test for any
                          solver.py change.
   test_models.py, test_storage.py, test_calendar.py, test_api.py, test_locales.py
+
+scripts/
+  prepare_release.py   Bumps pyproject.toml's version and rolls CHANGELOG's
+                        Unreleased section into a dated one. See RELEASING.md.
+  extract_changelog.py  Prints one version's CHANGELOG section; used by the
+                         release workflow to build GitHub Release notes.
+
+.github/workflows/
+  ci.yml               Lint, format check, test matrix, package-build check —
+                        every push/PR.
+  release.yml           Tag-triggered (`vX.Y.Z`): re-verifies, builds, and
+                         publishes a GitHub Release. See RELEASING.md.
 ```
 
 ## Conventions
@@ -106,7 +120,12 @@ tests/
 ## PR / commit expectations
 
 - Keep backend changes and their tests in the same change.
-- Update `CHANGELOG.md` under an `[Unreleased]`-style entry for user-facing changes
-  (see existing entries for tone/format).
+- Update `CHANGELOG.md` under the `## [Unreleased]` section for user-facing changes
+  (see existing entries for tone/format). Don't add a new dated version heading
+  yourself — `scripts/prepare_release.py` does that at release time.
 - Don't hand-edit `src/labplanner.egg-info/`, `__pycache__/`, `.pytest_cache/`, or
   `.ruff_cache/` — all are generated/git-ignored.
+- Never hardcode a version string — `labplanner.__version__` is derived from
+  installed package metadata (see `__init__.py`). Cutting a release is a
+  maintainer action documented in [RELEASING.md](RELEASING.md), not something
+  an agent should do unprompted.

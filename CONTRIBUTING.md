@@ -56,6 +56,11 @@ on macOS and Windows.
   migration step in `storage.py`, so existing project files keep loading.
 - Prefer small, focused pull requests with a clear description.
 
+## Releasing
+
+Maintainer only — see [RELEASING.md](RELEASING.md) for the tag-triggered release
+process.
+
 ## Reporting bugs
 
 Open a GitHub issue with:

@@ -142,7 +142,7 @@ labplanner --reload
 
 Contributions welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). If you're an AI coding
 agent (or configuring one), start with [AGENTS.md](AGENTS.md) for the repo map,
-conventions and commands.
+conventions and commands. Cutting a release? See [RELEASING.md](RELEASING.md).
 
 ## License
 
