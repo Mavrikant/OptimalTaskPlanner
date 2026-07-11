@@ -12,6 +12,7 @@ lexicographic via weights:
 from __future__ import annotations
 
 import contextlib
+import logging
 import time
 from datetime import date, datetime, timedelta
 
@@ -28,6 +29,8 @@ from .models import (
     Task,
     equipment_units,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def slot_state(task: Task, start: datetime, s: int) -> str:
@@ -66,11 +69,11 @@ def candidate_starts(
     dur = task.duration_slots
     blocked = {s for s in range(horizon) if slot_state(task, start, s) == "unavailable"}
     dl = deadline_slot(task, start)
-    if dl is not None and dl <= now_slot:
+    if dl is not None and task.deadline is not None and dl <= now_slot:
         return [], (f"deadline {task.deadline.date} {task.deadline.time} is already in the past")
     es = earliest_start_slot(task, start)
     if es is not None:
-        if es >= horizon:
+        if es >= horizon and task.earliest_start is not None:
             return [], (
                 f"earliest start {task.earliest_start.date} {task.earliest_start.time} "
                 f"is beyond the {horizon // SLOTS_PER_DAY}-day horizon"
@@ -79,12 +82,12 @@ def candidate_starts(
             return [], "earliest start leaves no room before the deadline"
     pin = pinned_start_slot(task, start)
     if pin is not None:
-        if pin < now_slot:
+        if pin < now_slot and task.pinned_start is not None:
             return [], (
                 f"pinned start {task.pinned_start.date} {task.pinned_start.time} "
                 "is already in the past"
             )
-        if pin >= horizon:
+        if pin >= horizon and task.pinned_start is not None:
             return [], (
                 f"pinned start {task.pinned_start.date} {task.pinned_start.time} "
                 f"is beyond the {horizon // SLOTS_PER_DAY}-day horizon"
@@ -148,7 +151,7 @@ def candidate_starts(
 
     if pin is not None:
         cands = [c for c in cands if c[0] == pin]
-        if not cands:
+        if not cands and task.pinned_start is not None:
             return [], (
                 f"pinned start {task.pinned_start.date} {task.pinned_start.time} is not a "
                 "feasible start (check working hours, painted slots and the deadline)"
@@ -270,8 +273,17 @@ def solve(
     horizon = days * SLOTS_PER_DAY
     work = build_work_mask(start, days, project.calendar)
 
+    logger.info(
+        "solve starting: %d task(s), %d-day horizon, time_limit=%.1fs, workers=%d",
+        len(project.tasks),
+        days,
+        time_limit_s,
+        workers,
+    )
+
     errors = precheck(project)
     if errors:
+        logger.info("solve rejected at precheck: %s", "; ".join(errors))
         return Schedule(
             status="INFEASIBLE",
             message="; ".join(errors),
@@ -336,26 +348,26 @@ def solve(
     start_exprs = []
     end_exprs = []
     obj_terms = []
-    makespan = model.NewIntVar(0, horizon, "makespan")
+    makespan = model.new_int_var(0, horizon, "makespan")
 
     for ti, t in enumerate(tasks):
         cands = all_cands[ti]
-        bt = [model.NewBoolVar(f"b_{ti}_{j}") for j in range(len(cands))]
-        model.AddExactlyOne(bt)
+        bt = [model.new_bool_var(f"b_{ti}_{j}") for j in range(len(cands))]
+        model.add_exactly_one(bt)
         b.append(bt)
 
         slots_used = sorted({s for _, occ in cands for s in occ})
-        xt = {s: model.NewBoolVar(f"x_{ti}_{s}") for s in slots_used}
+        xt = {s: model.new_bool_var(f"x_{ti}_{s}") for s in slots_used}
         for s in slots_used:
             covering = [bt[j] for j, (_, occ) in enumerate(cands) if s in set(occ)]
-            model.Add(xt[s] == sum(covering))
+            model.add(xt[s] == sum(covering))
         x.append(xt)
 
         # start / end / makespan
         start_exprs.append(sum(bt[j] * k for j, (k, _) in enumerate(cands)))
         end_expr = sum(bt[j] * (occ[-1] + 1) for j, (_, occ) in enumerate(cands))
         end_exprs.append(end_expr)
-        model.Add(makespan >= end_expr)
+        model.add(makespan >= end_expr)
 
         # preference + priority costs folded into candidate choice
         prio_w = n - ti
@@ -372,7 +384,7 @@ def solve(
             di = id_to_idx.get(dep_id)
             if di is None:
                 continue  # missing / done / already-finished prerequisite
-            model.Add(start_exprs[ti] >= end_exprs[di])
+            model.add(start_exprs[ti] >= end_exprs[di])
 
     # unit assignment
     a = []  # a[t] : dict unit_name -> BoolVar
@@ -382,10 +394,10 @@ def solve(
             if qty <= 0:
                 continue
             units = pool[rtype]
-            uvars = [model.NewBoolVar(f"a_{ti}_{u}") for u in units]
+            uvars = [model.new_bool_var(f"a_{ti}_{u}") for u in units]
             for u, v in zip(units, uvars, strict=True):
                 at[u] = v
-            model.Add(sum(uvars) == qty)
+            model.add(sum(uvars) == qty)
         if ti in frozen:  # keep an in-progress task on the units it already uses
             _, prev_units = frozen[ti]
             for rtype, qty in t.resources.items():
@@ -394,7 +406,7 @@ def solve(
                 kept = [u for u in prev_units if u in pool.get(rtype, [])]
                 if len(kept) == qty:
                     for u in kept:
-                        model.Add(at[u] == 1)
+                        model.add(at[u] == 1)
         a.append(at)
 
     # a unit can never serve a task during its own unavailability windows
@@ -405,7 +417,7 @@ def solve(
                 continue
             for s, xv in x[ti].items():
                 if s in bad:
-                    model.Add(av + xv <= 1)
+                    model.add(av + xv <= 1)
 
     # no unit used twice in the same slot. Only reify (unit, slot) where two or
     # more tasks could actually contend — a lone candidate can't conflict with
@@ -421,12 +433,12 @@ def solve(
             continue
         ys = []
         for ti in tis:
-            y = model.NewBoolVar(f"y_{ti}_{u}_{s}")
-            model.Add(y >= a[ti][u] + x[ti][s] - 1)
+            y = model.new_bool_var(f"y_{ti}_{u}_{s}")
+            model.add(y >= a[ti][u] + x[ti][s] - 1)
             ys.append(y)
-        model.AddAtMostOne(ys)
+        model.add_at_most_one(ys)
 
-    model.Minimize(w_makespan * makespan + sum(obj_terms))
+    model.minimize(w_makespan * makespan + sum(obj_terms))
 
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = time_limit_s
@@ -452,11 +464,18 @@ def solve(
 
     if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
         if cancel is not None and cancel.is_set():
+            logger.info("solve cancelled after %.1fs", wall)
             return Schedule(
                 status="CANCELLED",
                 message="Solve cancelled before a schedule was found.",
                 horizon_start=start.date().isoformat(),
             )
+        logger.info(
+            "solve found no schedule after %.1fs (cp_model status=%s, time_limit=%.1fs)",
+            wall,
+            solver.status_name(status),
+            time_limit_s,
+        )
         message = (
             "No schedule satisfies all constraints together. Try relaxing deadlines, "
             "unavailable hours, equipment maintenance windows or resource demands."
@@ -472,13 +491,13 @@ def solve(
     out: list[ScheduledTask] = []
     for ti, t in enumerate(tasks):
         j = next(j for j, v in enumerate(b[ti]) if solver.Value(v))
-        _, occ = all_cands[ti][j]
+        _, occ_slots = all_cands[ti][j]
         units = sorted(u for u, v in a[ti].items() if solver.Value(v))
         segments = []
-        seg_start = occ[0]
-        prev = occ[0]
-        for s in occ[1:] + [None]:
-            if s is None or s != prev + 1:
+        seg_start = occ_slots[0]
+        prev = occ_slots[0]
+        for nxt in occ_slots[1:] + [None]:
+            if nxt is None or nxt != prev + 1:
                 s_dt = start + timedelta(minutes=seg_start * SLOT_MINUTES)
                 e_dt = start + timedelta(minutes=(prev + 1) * SLOT_MINUTES)
                 segments.append(
@@ -489,21 +508,35 @@ def solve(
                         end_slot=prev + 1,
                     )
                 )
-                if s is not None:
-                    seg_start = s
-            if s is not None:
-                prev = s
+                if nxt is not None:
+                    seg_start = nxt
+            if nxt is not None:
+                prev = nxt
         out.append(ScheduledTask(task_id=t.id, task_name=t.name, units=units, segments=segments))
 
+    result_status = "OPTIMAL" if status == cp_model.OPTIMAL else "FEASIBLE"
+    makespan_minutes = (solver.Value(makespan) - now_slot) * SLOT_MINUTES if out else 0
+    logger.info(
+        "solve found %s schedule in %.1fs: %d task(s), makespan=%dmin",
+        result_status,
+        wall,
+        len(out),
+        makespan_minutes,
+    )
     return Schedule(
-        status="OPTIMAL" if status == cp_model.OPTIMAL else "FEASIBLE",
+        status=result_status,
         message="",
         solved_at=now.isoformat(timespec="seconds"),
         horizon_start=start.date().isoformat(),
-        makespan_minutes=(solver.Value(makespan) - now_slot) * SLOT_MINUTES if out else 0,
+        makespan_minutes=makespan_minutes,
         solve_time_s=round(wall, 3),
         tasks=out,
     )
+
+
+def _clear_start_constraints(t: Task) -> None:
+    t.earliest_start = None
+    t.pinned_start = None
 
 
 # Constraint families the infeasibility explainer tries to relax, in order:
@@ -525,7 +558,7 @@ _RELAX_FAMILIES = [
         "the earliest/pinned start of task '{name}'",
         "all earliest and pinned starts",
         lambda t: t.earliest_start is not None or t.pinned_start is not None,
-        lambda t: (setattr(t, "earliest_start", None), setattr(t, "pinned_start", None)),
+        _clear_start_constraints,
     ),
     (
         "the unavailable slots painted on task '{name}'",

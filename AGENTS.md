@@ -20,15 +20,31 @@ pip install -e .[dev]
 
 ruff check .            # lint
 ruff format --check .   # formatting (use `ruff format .` to fix)
+mypy                    # type check (src/labplanner only, see [tool.mypy] in pyproject.toml)
 pytest                  # full test suite
 pytest tests/test_solver.py -k reschedule   # run a subset while iterating
 
 labplanner --reload     # run the dev server at http://127.0.0.1:8000
+
+npm install                                          # once, installs Playwright
+npx playwright install --with-deps chromium           # once, downloads the browser
+labplanner --port 8010 --data-dir /tmp/lp-e2e-data &  # server for e2e (separate data dir)
+LABPLANNER_BASE_URL=http://127.0.0.1:8010 npx playwright test   # e2e/smoke.spec.js
 ```
 
-Run `ruff check .`, `ruff format --check .` and `pytest` before considering any change
-done — CI (`.github/workflows/ci.yml`) runs the same three on Python 3.12/3.13/3.14
-(Ubuntu) and 3.13 (macOS, Windows), plus a package-build check.
+Run `ruff check .`, `ruff format --check .`, `mypy` and `pytest` before considering any
+backend change done — CI (`.github/workflows/ci.yml`) runs the same four on Python
+3.12/3.13/3.14 (Ubuntu) and 3.13 (macOS, Windows), plus a package-build check and the
+Playwright e2e job. Touching `static/app.js`? Also run the e2e test above — it's the
+only automated coverage the frontend has.
+
+`ortools.sat.python.cp_model.CpModel`'s legacy PascalCase methods (`NewIntVar`,
+`AddExactlyOne`, ...) lack type stubs — use the modern snake_case API
+(`new_int_var`, `add_exactly_one`, ...) instead, which is fully typed and behaves
+identically. Also: within one function, avoid reusing a loop variable name (e.g. `s`)
+across unrelated loops if their element types differ (one `int`, another
+`int | None`) — mypy infers a single type per unannotated local per function, so the
+second usage gets a spurious type error. Give it a distinct name instead.
 
 ## Repo map
 
@@ -67,6 +83,12 @@ tests/
                          solver.py change.
   test_models.py, test_storage.py, test_calendar.py, test_api.py, test_locales.py
 
+e2e/
+  smoke.spec.js         Playwright: loads the app, solves the seeded sample
+                         project, asserts the Gantt renders. The only
+                         automated frontend coverage — extend this rather than
+                         adding a parallel test runner.
+
 scripts/
   prepare_release.py   Bumps pyproject.toml's version and rolls CHANGELOG's
                         Unreleased section into a dated one. See RELEASING.md.
@@ -74,8 +96,8 @@ scripts/
                          release workflow to build GitHub Release notes.
 
 .github/workflows/
-  ci.yml               Lint, format check, test matrix, package-build check —
-                        every push/PR.
+  ci.yml               Lint, format check, test matrix, Playwright e2e,
+                        package-build check — every push/PR.
   release.yml           Tag-triggered (`vX.Y.Z`): re-verifies, builds, and
                          publishes a GitHub Release. See RELEASING.md.
 ```
@@ -97,6 +119,13 @@ scripts/
   `Task`, etc. in `models.py`), bump `SCHEMA_VERSION` and add a matching forward
   migration step in `storage.py`'s migration chain. Old project files must keep
   loading losslessly.
+- **Logging**: each backend module gets its own `logger = logging.getLogger(__name__)`;
+  `cli.py` calls `logging.basicConfig()` so it's actually visible when running
+  `labplanner` (library code should never call `basicConfig` itself). Log
+  lifecycle events at `INFO` (solve start/end + status, migrations, backup
+  snapshots, solve-job submission) and unexpected exceptions with
+  `logger.exception(...)` inside an `except` block so the traceback isn't lost —
+  don't add per-request access logging, uvicorn already does that.
 - **Style**: `ruff` (line length 100, rules in `[tool.ruff.lint]` of
   `pyproject.toml`) is the only enforced style; no separate formatter config beyond
   `ruff format`. Module docstrings explain *why*/*invariants*, not what the code

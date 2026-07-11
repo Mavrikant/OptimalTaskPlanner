@@ -1,0 +1,33 @@
+name: Bug report
+description: Something isn't working as expected
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: project-json
+    attributes:
+      label: Project data
+      description: >-
+        If the problem is solver- or schedule-related, attach your project's JSON
+        (Resources tab → export, or the file under data/projects/). Redact task/
+        equipment names first if needed.
+    validations:
+      required: false
+  - type: input
+    id: version
+    attributes:
+      label: LabPlanner version
+      description: Shown in the footer, or `labplanner --version`
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS and Python version
+    validations:
+      required: true

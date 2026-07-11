@@ -114,7 +114,9 @@ def test_solve_job_runs_and_persists_schedule(client):
 
 
 def test_solve_status_unknown_job_is_404(client):
-    assert client.get("/api/solve/nope").status_code == 404
+    r = client.get("/api/solve/nope")
+    assert r.status_code == 404
+    assert "restart" in r.json()["detail"]  # hints at the cause, not just "not found"
     assert client.post("/api/solve/nope/cancel").status_code == 404
 
 

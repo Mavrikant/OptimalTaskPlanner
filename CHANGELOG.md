@@ -17,9 +17,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `labplanner.__version__` is now read from installed package metadata
   instead of being hardcoded, so it can no longer drift from
   `pyproject.toml`.
+- Backend logging: solve start/end (status, wall time, makespan), schema
+  migrations, backup snapshots and solve-job submission/failure now log at
+  `INFO` (visible by default when running `labplanner`).
+- `mypy` type checking, wired into CI and the optional pre-commit hook.
+- A Playwright end-to-end smoke test (`e2e/smoke.spec.js`) — the first
+  automated coverage for `static/app.js` — plus a real README screenshot
+  generated from it.
+- `SECURITY.md`, GitHub issue/PR templates, and a `.pre-commit-config.yaml`
+  (ruff + mypy).
+
+### Changed
+
+- The 404 returned for an unknown/expired solve job now explains that solve
+  progress isn't kept across a server restart, instead of just "Unknown
+  solve job".
 
 ### Fixed
 
+- `ProjectStore.list()` renamed to `list_projects()` — as a method literally
+  named `list`, it shadowed the builtin `list` type within the class body.
+- `solver.py` now uses OR-Tools' modern, fully-typed snake_case CP-SAT API
+  (`new_int_var`, `add`, `minimize`, ...) instead of the legacy PascalCase
+  aliases, which have no type stubs.
+- A corrupt legacy `project.json` crashed the server on every startup
+  (uncaught `json.JSONDecodeError`/`ValidationError` in `ensure_default()`).
+  It's now moved aside as `project.json.corrupted` and a fresh default
+  project is seeded instead, with the failure logged.
+- A project file with a `schema_version` newer than the running build
+  understands was silently downgraded with no warning; now logs one
+  (existing-file compatibility is unchanged — this is observability, not a
+  behavior fix).
 - CI: `test_large_project_solves_without_double_booking` was flaky on slower/shared
   runners (notably `windows-latest`) — its 15s CP-SAT time budget was already
   borderline on fast hardware, so the search would occasionally time out before

@@ -11,7 +11,6 @@ You describe your equipment pool, your tasks and their constraints — LabPlanne
 provably optimal schedule and shows it as an interactive Gantt chart. Everything runs locally:
 a small FastAPI backend plus a dependency-free vanilla-JS frontend.
 
-<!-- TODO: replace with a real screenshot -->
 ![Schedule view](docs/screenshot.png)
 
 ## Features
@@ -136,6 +135,7 @@ of the project data and an injected `now` timestamp, which keeps it fully unit-t
 pip install -e .[dev]
 ruff check .            # lint
 ruff format --check .   # formatting
+mypy                    # type check
 pytest                  # tests
 labplanner --reload
 ```

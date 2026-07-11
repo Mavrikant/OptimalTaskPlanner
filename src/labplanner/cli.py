@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import os
 
 import uvicorn
@@ -34,6 +35,10 @@ def main(argv: list[str] | None = None) -> None:
     os.environ["LABPLANNER_PORT"] = str(args.port)
     os.environ["LABPLANNER_DATA_DIR"] = args.data_dir
     os.environ["LABPLANNER_DAYS"] = str(args.days)
+
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
+    )
 
     print(f"LabPlanner {__version__} — http://{args.host}:{args.port}")
     uvicorn.run(

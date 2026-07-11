@@ -12,6 +12,7 @@ automatically the first time the store is used.
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 import shutil
@@ -22,7 +23,11 @@ from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 
+from pydantic import ValidationError
+
 from .models import SCHEMA_VERSION, Project
+
+logger = logging.getLogger(__name__)
 
 BACKUP_MIN_INTERVAL_S = 10 * 60  # at most one time-based snapshot per 10 minutes
 BACKUP_KEEP = 20
@@ -115,12 +120,35 @@ MIGRATIONS: dict[int, Callable[[dict], dict]] = {
 def migrate(raw: dict) -> dict:
     """Bring a raw project dict up to the current schema version."""
     version = raw.get("schema_version", 1)
+    start_version = version
+    if start_version > SCHEMA_VERSION:
+        logger.warning(
+            "project '%s' has schema_version %d, newer than this build supports (%d) — "
+            "fields added since may be silently dropped on next save",
+            raw.get("name", "?"),
+            start_version,
+            SCHEMA_VERSION,
+        )
     while version < SCHEMA_VERSION:
         step = MIGRATIONS.get(version)
         if step is None:  # future-proofing: unknown gap, let validation decide
+            logger.warning(
+                "no migration step registered for schema_version %d (target %d) — "
+                "leaving project '%s' partially migrated",
+                version,
+                SCHEMA_VERSION,
+                raw.get("name", "?"),
+            )
             break
         raw = step(raw)
         version += 1
+    if version > start_version:
+        logger.info(
+            "migrated project '%s' from schema_version %d to %d",
+            raw.get("name", "?"),
+            start_version,
+            version,
+        )
     raw["schema_version"] = SCHEMA_VERSION
     return raw
 
@@ -149,7 +177,7 @@ class ProjectStore:
 
     # -- listing / CRUD
 
-    def list(self) -> list[dict]:
+    def list_projects(self) -> list[dict]:
         self.projects_dir.mkdir(parents=True, exist_ok=True)
         out = []
         for path in self.projects_dir.glob("*.json"):
@@ -214,12 +242,22 @@ class ProjectStore:
             return
         legacy = self.data_dir / "project.json"
         if legacy.exists():
-            with open(legacy, encoding="utf-8") as f:
-                raw = json.load(f)
-            project = Project.model_validate(migrate(raw))
+            try:
+                with open(legacy, encoding="utf-8") as f:
+                    raw = json.load(f)
+                project = Project.model_validate(migrate(raw))
+            except (json.JSONDecodeError, ValidationError):
+                logger.exception(
+                    "legacy project.json is corrupt — moving it aside and seeding a "
+                    "fresh default project instead of crashing on every startup"
+                )
+                legacy.rename(legacy.with_name("project.json.corrupted"))
+                self.create("My lab", default_project())
+                return
             pid = self.create(project.name, project)
             self._snapshot(pid, force=True)
             legacy.rename(legacy.with_name("project.json.migrated"))
+            logger.info("migrated legacy project.json to project '%s' (id=%s)", project.name, pid)
         else:
             self.create("My lab", default_project())
 
@@ -240,6 +278,7 @@ class ProjectStore:
                 return
         stamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
         shutil.copy2(path, bdir / f"{stamp}.json")
+        logger.info("backup snapshot taken for project %s (%s)", pid, stamp)
         self._prune(pid)
 
     def _prune(self, pid: str) -> None:

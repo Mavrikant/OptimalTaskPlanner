@@ -6,11 +6,18 @@ dist/
 build/
 .venv/
 venv/
+.deps/
 
 # Tooling caches
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
+
+# Node / Playwright (e2e tests)
+node_modules/
+test-results/
+playwright-report/
+blob-report/
 
 # Runtime data (user projects live here, never in the repo)
 data/

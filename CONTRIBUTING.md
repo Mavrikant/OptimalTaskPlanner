@@ -16,6 +16,7 @@ cd LabPlanner
 python -m venv .venv
 # Windows: .venv\Scripts\activate    Linux/macOS: source .venv/bin/activate
 pip install -e .[dev]
+pre-commit install   # optional: runs ruff check --fix + ruff format + mypy on every commit
 ```
 
 Run the app locally:
@@ -26,16 +27,26 @@ labplanner --reload
 
 ## Quality checks
 
-Before opening a pull request, make sure all three pass:
+Before opening a pull request, make sure all four pass:
 
 ```bash
 ruff check .
 ruff format --check .
+mypy
 pytest
 ```
 
 CI runs the same checks on Python 3.12, 3.13 and 3.14 on Ubuntu, plus Python 3.13
 on macOS and Windows.
+
+If you touched `static/app.js` (or anything UI-facing), also run the end-to-end test —
+it's the only automated frontend coverage:
+
+```bash
+npm install && npx playwright install --with-deps chromium   # once
+labplanner --port 8010 --data-dir /tmp/lp-e2e-data &
+LABPLANNER_BASE_URL=http://127.0.0.1:8010 npx playwright test
+```
 
 ## Guidelines
 

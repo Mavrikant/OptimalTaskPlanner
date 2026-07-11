@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import threading
 import time
 import uuid
@@ -17,6 +18,8 @@ from . import __version__, calendar_utils, solver
 from .config import Settings
 from .models import SLOTS_PER_DAY, Project, SolverOptions
 from .storage import ProjectStore
+
+logger = logging.getLogger(__name__)
 
 STATIC_DIR = Path(__file__).parent / "static"
 
@@ -77,7 +80,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.get("/api/projects")
     def list_projects() -> dict:
-        return {"projects": store.list()}
+        return {"projects": store.list_projects()}
 
     @app.post("/api/projects")
     def create_project(payload: dict | None = None) -> dict:
@@ -169,6 +172,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         with jobs_lock:
             _prune_jobs()
             jobs[job_id] = job
+        logger.info("solve job %s submitted for project %s", job_id, pid)
 
         def on_progress(mk: int) -> None:
             job["best_makespan_minutes"] = mk
@@ -192,6 +196,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     job["horizon"] = horizon_info(project)
                     job["status"] = "done"
             except Exception as e:  # surface solver bugs to the poller
+                logger.exception("solve job %s failed", job_id)
                 job["error"] = str(e)
                 job["status"] = "error"
             finally:
@@ -204,7 +209,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def solve_status(job_id: str) -> dict:
         job = jobs.get(job_id)
         if not job:
-            raise HTTPException(status_code=404, detail="Unknown solve job")
+            raise HTTPException(
+                status_code=404,
+                detail="Solve job not found — it may have finished earlier, or the "
+                "server restarted (solve progress isn't kept across restarts)",
+            )
         elapsed = (time.time() if job["status"] == "running" else job["finished"]) - job["started"]
         out = {
             "status": job["status"],
@@ -222,7 +231,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def solve_cancel(job_id: str) -> dict:
         job = jobs.get(job_id)
         if not job:
-            raise HTTPException(status_code=404, detail="Unknown solve job")
+            raise HTTPException(
+                status_code=404,
+                detail="Solve job not found — it may have finished earlier, or the "
+                "server restarted (solve progress isn't kept across restarts)",
+            )
         job["cancel"].set()
         return {"ok": True}
 

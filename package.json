@@ -1,0 +1,12 @@
+{
+  "name": "labplanner-e2e",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Playwright end-to-end tests for the LabPlanner web UI.",
+  "scripts": {
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0"
+  }
+}

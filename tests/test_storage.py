@@ -1,4 +1,6 @@
 import json
+import logging
+import threading
 
 import pytest
 from pydantic import ValidationError
@@ -14,7 +16,7 @@ def store(tmp_path):
 
 def test_ensure_default_seeds_a_sample_project(store):
     store.ensure_default()
-    projects = store.list()
+    projects = store.list_projects()
     assert len(projects) == 1
     project = store.load(projects[0]["id"])
     assert project.equipment
@@ -31,12 +33,12 @@ def test_crud_roundtrip(store):
     store.save(pid, project)
     assert store.load(pid).calendar.work_start == "09:00"
 
-    listed = store.list()
+    listed = store.list_projects()
     assert [p["id"] for p in listed] == [pid]
     assert listed[0]["name"] == "Alpha"
 
     store.delete(pid)
-    assert store.list() == []
+    assert store.list_projects() == []
     with pytest.raises(FileNotFoundError):
         store.load(pid)
 
@@ -78,7 +80,7 @@ def test_legacy_single_file_is_migrated_losslessly(tmp_path):
     store = ProjectStore(data_dir)
     store.ensure_default()
 
-    projects = store.list()
+    projects = store.list_projects()
     assert len(projects) == 1
     migrated = store.load(projects[0]["id"])
     assert [t.name for t in migrated.tasks] == [t.name for t in legacy_project.tasks]
@@ -140,3 +142,55 @@ def test_restore_rejects_bad_names(store):
 def test_save_missing_project_raises(store):
     with pytest.raises(FileNotFoundError):
         store.save("doesnotexist", Project(name="x"))
+
+
+def test_concurrent_writes_never_corrupt_the_file(store):
+    """_write's tempfile+os.replace must stay atomic under concurrent writers."""
+    pid = store.create("Race")
+    n = 16
+    barrier = threading.Barrier(n)
+
+    def write(i: int) -> None:
+        project = store.load(pid)
+        project.calendar.work_start = f"{6 + i % 12:02d}:00"
+        barrier.wait()  # maximise overlap
+        store.save(pid, project)
+
+    threads = [threading.Thread(target=write, args=(i,)) for i in range(n)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    # the file must always be one writer's complete, valid content — never a
+    # torn/interleaved mix of two writes
+    raw = json.loads(store._path(pid).read_text(encoding="utf-8"))
+    assert raw["calendar"]["work_start"] in {f"{6 + i % 12:02d}:00" for i in range(n)}
+    loaded = store.load(pid)  # re-validates against the schema
+    assert loaded.calendar.work_start == raw["calendar"]["work_start"]
+
+
+def test_ensure_default_recovers_from_corrupt_legacy_file(tmp_path, caplog):
+    data_dir = tmp_path / "data"
+    data_dir.mkdir(parents=True)
+    (data_dir / "project.json").write_text("{not valid json", encoding="utf-8")
+
+    store = ProjectStore(data_dir)
+    with caplog.at_level(logging.ERROR):
+        store.ensure_default()  # must not raise
+
+    assert (data_dir / "project.json.corrupted").exists()
+    assert not (data_dir / "project.json").exists()
+    projects = store.list_projects()
+    assert len(projects) == 1
+    assert store.load(projects[0]["id"]).name == "My lab"
+    assert "corrupt" in caplog.text
+
+
+def test_migrate_future_schema_version_does_not_crash(caplog):
+    raw = {"name": "From the future", "equipment": [], "tasks": [], "schema_version": 999}
+    with caplog.at_level(logging.WARNING):
+        migrated = migrate(raw)
+    # current behavior: downgraded to what this build understands, with a warning
+    assert migrated["schema_version"] == SCHEMA_VERSION
+    assert "newer than this build supports" in caplog.text
