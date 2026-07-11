@@ -22,8 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `INFO` (visible by default when running `labplanner`).
 - `mypy` type checking, wired into CI and the optional pre-commit hook.
 - A Playwright end-to-end smoke test (`e2e/smoke.spec.js`) — the first
-  automated coverage for `static/app.js` — plus a real README screenshot
-  generated from it.
+  automated frontend coverage — plus a real README screenshot generated
+  from it.
 - `SECURITY.md`, GitHub issue/PR templates, and a `.pre-commit-config.yaml`
   (ruff + mypy).
 
@@ -32,6 +32,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The 404 returned for an unknown/expired solve job now explains that solve
   progress isn't kept across a server restart, instead of just "Unknown
   solve job".
+- `static/app.js` (1955 lines, no test coverage until this release added the
+  e2e smoke test) is now split into `core.js`, `shell.js`, `resources.js`,
+  `tasks.js`, `schedule.js`, `insights.js` and `boot.js`, loaded in that
+  order as plain `<script>` tags — still no framework, no build step, no ES
+  modules, purely a mechanical split with no behavior change.
 
 ### Fixed
 

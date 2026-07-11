@@ -35,8 +35,8 @@ LABPLANNER_BASE_URL=http://127.0.0.1:8010 npx playwright test   # e2e/smoke.spec
 Run `ruff check .`, `ruff format --check .`, `mypy` and `pytest` before considering any
 backend change done — CI (`.github/workflows/ci.yml`) runs the same four on Python
 3.12/3.13/3.14 (Ubuntu) and 3.13 (macOS, Windows), plus a package-build check and the
-Playwright e2e job. Touching `static/app.js`? Also run the e2e test above — it's the
-only automated coverage the frontend has.
+Playwright e2e job. Touching any `static/*.js` file? Also run the e2e test above —
+it's the only automated coverage the frontend has.
 
 `ortools.sat.python.cp_model.CpModel`'s legacy PascalCase methods (`NewIntVar`,
 `AddExactlyOne`, ...) lack type stubs — use the modern snake_case API
@@ -70,11 +70,30 @@ src/labplanner/
   cli.py              `labplanner` entry point (argparse + uvicorn.run).
   __init__.py          `__version__` is read from installed package metadata
                       (`importlib.metadata`), not hardcoded — see RELEASING.md.
-  static/
-    app.js            Entire frontend — vanilla JS, no framework, no build step.
+  static/             Vanilla JS, no framework, no build step, no ES modules —
+                      every file below is a classic <script> tag (see index.html)
+                      executing in this exact order, all sharing one global scope.
+                      A function/const defined in an earlier file is visible to
+                      later ones (and vice versa inside deferred callbacks, since
+                      by the time any handler actually runs, every script has
+                      already loaded) — but preserve this load order if you
+                      reorder or add files, and add new globals to the file
+                      whose domain they belong to, not wherever is convenient.
     i18n.js            LANGUAGES list + locale loading/switching.
     icons.js            Inline SVG icon set.
-    locales/*.json     One file per language; en.json is the source of truth for keys.
+    core.js             State, $/$$ /esc/api() helpers, save, undo/redo, toasts
+                        & modal — foundational, everything else depends on it.
+    shell.js            Onboarding tour, theme/tab/language chrome, project
+                        switcher (new/rename/duplicate/import/export/backups).
+    resources.js        Resources tab: equipment pool, unit availability, the
+                        shared paintable slot grid (also used by tasks.js —
+                        must stay loaded before it), working calendar/holidays.
+    tasks.js            Tasks tab: task list (drag/keyboard reorder) + editor.
+    schedule.js          Async solve (job/progress/cancel) + Schedule tab:
+                         Gantt SVG, details table, HTML export.
+    insights.js          Insights tab: KPI tiles, utilisation bars, load heatmap.
+    boot.js              App bootstrap — always loads last.
+    locales/*.json      One file per language; en.json is the source of truth for keys.
     index.html, style.css
 
 tests/

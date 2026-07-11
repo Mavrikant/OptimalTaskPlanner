@@ -39,8 +39,8 @@ pytest
 CI runs the same checks on Python 3.12, 3.13 and 3.14 on Ubuntu, plus Python 3.13
 on macOS and Windows.
 
-If you touched `static/app.js` (or anything UI-facing), also run the end-to-end test —
-it's the only automated frontend coverage:
+If you touched any `static/*.js` file (or anything UI-facing), also run the end-to-end
+test — it's the only automated frontend coverage:
 
 ```bash
 npm install && npx playwright install --with-deps chromium   # once
@@ -65,6 +65,10 @@ LABPLANNER_BASE_URL=http://127.0.0.1:8010 npx playwright test
 - Changing the shape of project JSON (fields on `Project`, `Task`, etc. in
   `models.py`) requires bumping `SCHEMA_VERSION` and adding a matching forward
   migration step in `storage.py`, so existing project files keep loading.
+- The frontend is split across `static/{core,shell,resources,tasks,schedule,
+  insights,boot}.js`, loaded in that order as plain `<script>` tags (no build
+  step, no ES modules — they share one global scope). Preserve the load order
+  if you add or reorder files; put new code in the file matching its domain.
 - Prefer small, focused pull requests with a clear description.
 
 ## Releasing
