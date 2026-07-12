@@ -80,6 +80,8 @@
   "tasks.priorityHint": "Sıralamak için satırları sürükleyin — en üst = en yüksek öncelik. Alt+↑/↓ da seçili görevi taşır.",
   "tasks.none": "Görev seçilmedi.",
   "tasks.empty": "Henüz görev yok — ilk görevinizi ekleyin.",
+  "tasks.filterPlaceholder": "Görev ara…",
+  "tasks.filterEmpty": "\"{query}\" ile eşleşen görev yok.",
   "tasks.newName": "Yeni görev",
   "tasks.copySuffix": "(kopya)",
   "tasks.name": "Görev adı",

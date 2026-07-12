@@ -80,6 +80,8 @@
   "tasks.priorityHint": "Drag rows to reorder — top = highest priority. Alt+↑/↓ also moves the selected task.",
   "tasks.none": "No task selected.",
   "tasks.empty": "No tasks yet — add your first task.",
+  "tasks.filterPlaceholder": "Search tasks…",
+  "tasks.filterEmpty": "No tasks match \"{query}\".",
   "tasks.newName": "New task",
   "tasks.copySuffix": "(copy)",
   "tasks.name": "Task name",

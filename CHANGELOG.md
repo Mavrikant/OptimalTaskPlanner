@@ -29,6 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The Schedule tab now shows the solver's best-so-far schedule live while a
   solve is running, instead of just an elapsed-time/makespan text status —
   updates with every improving CP-SAT solution found.
+- A search box on the Tasks tab filters the task list by name; priority
+  numbers stay tied to each task's real position, not the filtered view.
 
 ### Changed
 

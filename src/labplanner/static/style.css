@@ -202,12 +202,13 @@ td .btn{margin-right:4px}
 .tablewrap{overflow-x:auto}
 
 /* ---------- inputs ---------- */
-input[type=text],input[type=number],input[type=date],select{
+input[type=text],input[type=number],input[type=date],input[type=search],select{
   font:inherit;padding:6px 9px;border:1px solid var(--border-strong);border-radius:8px;
   background:var(--panel);color:var(--text);max-width:100%;
 }
 input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:-1px}
 input[type=number]{width:80px}
+.task-filter{width:100%;margin-bottom:10px}
 label{cursor:pointer}
 .field{min-width:0}
 .field>label{display:block;font-size:11px;color:var(--muted);margin-bottom:var(--s1);

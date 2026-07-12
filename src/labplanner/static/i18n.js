@@ -54,6 +54,9 @@ function applyI18n() {
     el.title = v;
     el.setAttribute("aria-label", v);
   });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+    el.placeholder = t(el.dataset.i18nPlaceholder);
+  });
 }
 
 function setLang(lang) {

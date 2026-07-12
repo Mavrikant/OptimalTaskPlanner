@@ -1,12 +1,22 @@
 "use strict";
 /* ================= task list ================= */
+let taskFilter = "";
+
 function renderTaskList() {
   const ul = $("#taskList"); ul.innerHTML = "";
   if (!project.tasks.length) {
     ul.innerHTML = `<li class="empty-state" style="cursor:default">${esc(t("tasks.empty"))}</li>`;
     return;
   }
-  project.tasks.forEach((task, i) => {
+  const q = taskFilter.trim().toLowerCase();
+  const visible = q ? project.tasks.filter(x => x.name.toLowerCase().includes(q)) : project.tasks;
+  if (!visible.length) {
+    ul.innerHTML = `<li class="empty-state" style="cursor:default">` +
+      `${esc(t("tasks.filterEmpty", { query: taskFilter.trim() }))}</li>`;
+    return;
+  }
+  visible.forEach(task => {
+    const i = project.tasks.indexOf(task); // true priority position, not the filtered index
     const li = document.createElement("li");
     li.draggable = true; li.dataset.id = task.id;
     li.className = (task.id === selectedId ? "selected" : "") +
@@ -44,6 +54,7 @@ function renderTaskList() {
     ul.appendChild(li);
   });
 }
+$("#taskFilter").oninput = e => { taskFilter = e.target.value; renderTaskList(); };
 $("#btnAddTask").onclick = () => {
   const task = {
     id: uuid(), name: t("tasks.newName"), minutes: 120,
@@ -52,6 +63,7 @@ $("#btnAddTask").onclick = () => {
     depends_on: [], status: "pending", resources: {}, slots: {},
   };
   project.tasks.push(task); selectedId = task.id;
+  taskFilter = ""; $("#taskFilter").value = ""; // otherwise the new task may not match
   markSave(); renderTaskList(); renderEditor();
 };
 $("#btnDupTask").onclick = () => {
