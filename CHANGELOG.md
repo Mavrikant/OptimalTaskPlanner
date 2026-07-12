@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- A standalone Windows executable (`optimal-task-planner-X.Y.Z-windows-x64.exe`,
+  built with PyInstaller) is attached to every GitHub Release — no Python
+  installation required: download, double-click, and the UI opens in the
+  browser. `--reload` is not available in the frozen executable.
+
 - An official Docker image, published to
   `ghcr.io/mavrikant/optimal-task-planner` on every release (amd64 +
   arm64). It listens on 0.0.0.0:8000, stores projects in the `/data`

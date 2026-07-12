@@ -6,6 +6,7 @@ import argparse
 import contextlib
 import logging
 import os
+import sys
 import threading
 import time
 import urllib.request
@@ -67,6 +68,12 @@ def main(argv: list[str] | None = None) -> None:
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     args = parser.parse_args(argv)
+
+    # uvicorn's reloader re-execs sys.executable, which in a PyInstaller
+    # bundle is the bundle itself — an endless respawn, not a dev server.
+    if getattr(sys, "frozen", False) and args.reload:
+        print("--reload is not supported in the standalone executable; ignoring it.")
+        args.reload = False
 
     # Resolve to an absolute path before handing it around: the uvicorn factory
     # and --reload workers may run with a different CWD than this process.

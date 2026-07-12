@@ -134,3 +134,46 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+  # Standalone Windows executable — no Python required on the target machine.
+  # `needs: release` because `gh release upload` requires the release to exist.
+  windows-exe:
+    needs: release
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Install
+        run: pip install . pyinstaller
+      - name: Build executable
+        run: pyinstaller packaging/optimal-task-planner.spec
+      - name: Smoke test executable
+        shell: pwsh
+        run: |
+          Start-Process dist\optimal-task-planner.exe -ArgumentList `
+            '--no-browser','--port','8765','--data-dir',"$env:TEMP\otp-smoke"
+          $ok = $false
+          foreach ($i in 1..60) {
+            try {
+              Invoke-WebRequest http://127.0.0.1:8765/api/health -UseBasicParsing | Out-Null
+              $ok = $true; break
+            } catch { Start-Sleep 1 }
+          }
+          # kill by name: the onefile bootstrap spawns a child that outlives
+          # a Stop-Process on the parent PID
+          Get-Process optimal-task-planner -ErrorAction SilentlyContinue |
+            Stop-Process -Force
+          if (-not $ok) { exit 1 }
+      - name: Attach to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $v = "$env:GITHUB_REF_NAME".TrimStart("v")
+          Copy-Item dist\optimal-task-planner.exe "optimal-task-planner-$v-windows-x64.exe"
+          gh release upload $env:GITHUB_REF_NAME "optimal-task-planner-$v-windows-x64.exe"
