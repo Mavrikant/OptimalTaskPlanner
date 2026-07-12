@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Releases are now published to PyPI via Trusted Publishing, so
+  `pip install optimal-task-planner` (or a zero-install
+  `uvx optimal-task-planner`) works — no more installing from a git URL.
+
 - The server now opens the web UI in the default browser once it is ready.
   Opt out with `--no-browser` or `OPTIMAL_TASK_PLANNER_NO_BROWSER=1`;
   `--reload` (development) never opens one. With `--host 0.0.0.0` the

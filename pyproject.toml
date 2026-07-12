@@ -44,6 +44,8 @@ dev = [
 
 [project.urls]
 Homepage = "https://github.com/Mavrikant/OptimalTaskPlanner"
+Repository = "https://github.com/Mavrikant/OptimalTaskPlanner"
+Changelog = "https://github.com/Mavrikant/OptimalTaskPlanner/blob/main/CHANGELOG.md"
 Issues = "https://github.com/Mavrikant/OptimalTaskPlanner/issues"
 
 [project.scripts]
@@ -53,7 +55,7 @@ optimal-task-planner = "optimal_task_planner.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-optimal_task_planner = ["static/*", "static/locales/*", "static/fonts/*"]
+optimal_task_planner = ["static/**/*"]
 
 [tool.ruff]
 line-length = 100
