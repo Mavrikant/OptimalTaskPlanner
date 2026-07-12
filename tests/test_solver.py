@@ -400,6 +400,31 @@ def test_large_project_solves_without_double_booking():
     _assert_no_double_booking(s)
 
 
+def test_progress_callback_reports_a_live_schedule_snapshot():
+    """The Schedule tab shows in-progress solutions — progress() must carry one."""
+    p = make_project(
+        [{"name": "Rig", "count": 2}],
+        [
+            make_task(id="a", name="Alpha", minutes=60, resources={"Rig": 1}),
+            make_task(id="b", name="Beta", minutes=90, resources={"Rig": 1}),
+        ],
+    )
+    calls = []
+    s = solve(p, now=NOW, progress=lambda mk, snapshot: calls.append((mk, snapshot)))
+    assert s.status in ("OPTIMAL", "FEASIBLE")
+    assert calls, "expected at least one progress callback for a solvable model"
+    for mk, snapshot in calls:
+        assert isinstance(mk, int)
+        assert {st.task_id for st in snapshot} == {"a", "b"}
+        for st in snapshot:
+            assert st.segments  # every task in a solution snapshot occupies real slots
+    # the last reported makespan must agree with the final result — same
+    # extraction code path, just fed a different (the winning) solution
+    last_mk, last_snapshot = calls[-1]
+    assert last_mk == s.makespan_minutes
+    assert {st.task_id for st in last_snapshot} == {t.task_id for t in s.tasks}
+
+
 def test_infeasible_hint_names_the_blocking_deadline():
     # both tasks need the single Rig inside the same one-hour deadline window
     p = make_project(

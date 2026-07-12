@@ -257,6 +257,49 @@ def precheck(project: Project) -> list[str]:
     return errors
 
 
+def _extract_scheduled_tasks(
+    value_fn,
+    tasks: list[Task],
+    all_cands: list[list[tuple[int, list[int]]]],
+    b: list[list],
+    a: list[dict],
+    start: datetime,
+) -> list[ScheduledTask]:
+    """Build a schedule from one CP-SAT solution's variable values.
+
+    ``value_fn`` is ``solver.Value``/``solver.value`` for the final solution,
+    or a callback's ``self.Value`` for an in-progress one — same shape either
+    way, which lets the live-progress preview reuse this instead of
+    duplicating the segment-merging logic.
+    """
+    out: list[ScheduledTask] = []
+    for ti, t in enumerate(tasks):
+        j = next(j for j, v in enumerate(b[ti]) if value_fn(v))
+        _, occ_slots = all_cands[ti][j]
+        units = sorted(u for u, v in a[ti].items() if value_fn(v))
+        segments = []
+        seg_start = occ_slots[0]
+        prev = occ_slots[0]
+        for nxt in occ_slots[1:] + [None]:
+            if nxt is None or nxt != prev + 1:
+                s_dt = start + timedelta(minutes=seg_start * SLOT_MINUTES)
+                e_dt = start + timedelta(minutes=(prev + 1) * SLOT_MINUTES)
+                segments.append(
+                    ScheduleSegment(
+                        start=s_dt.isoformat(timespec="minutes"),
+                        end=e_dt.isoformat(timespec="minutes"),
+                        start_slot=seg_start,
+                        end_slot=prev + 1,
+                    )
+                )
+                if nxt is not None:
+                    seg_start = nxt
+            if nxt is not None:
+                prev = nxt
+        out.append(ScheduledTask(task_id=t.id, task_name=t.name, units=units, segments=segments))
+    return out
+
+
 def solve(
     project: Project,
     days: int = 14,
@@ -264,7 +307,7 @@ def solve(
     time_limit_s: float = 20.0,
     explain: bool = True,
     workers: int = 8,
-    progress=None,  # optional callable(best_makespan_minutes) on each new solution
+    progress=None,  # optional callable(best_makespan_minutes, ScheduledTask list) per solution
     cancel=None,  # optional threading.Event; StopSearch() when set
 ) -> Schedule:
     now = now or datetime.now()
@@ -452,7 +495,11 @@ def solve(
                 if progress is not None:
                     # progress reporting must never break the solve
                     with contextlib.suppress(Exception):
-                        progress((self.Value(makespan) - now_slot) * SLOT_MINUTES)
+                        mk = (self.Value(makespan) - now_slot) * SLOT_MINUTES
+                        snapshot = _extract_scheduled_tasks(
+                            self.Value, tasks, all_cands, b, a, start
+                        )
+                        progress(mk, snapshot)
                 if cancel is not None and cancel.is_set():
                     self.StopSearch()
 
@@ -488,31 +535,7 @@ def solve(
             horizon_start=start.date().isoformat(),
         )
 
-    out: list[ScheduledTask] = []
-    for ti, t in enumerate(tasks):
-        j = next(j for j, v in enumerate(b[ti]) if solver.Value(v))
-        _, occ_slots = all_cands[ti][j]
-        units = sorted(u for u, v in a[ti].items() if solver.Value(v))
-        segments = []
-        seg_start = occ_slots[0]
-        prev = occ_slots[0]
-        for nxt in occ_slots[1:] + [None]:
-            if nxt is None or nxt != prev + 1:
-                s_dt = start + timedelta(minutes=seg_start * SLOT_MINUTES)
-                e_dt = start + timedelta(minutes=(prev + 1) * SLOT_MINUTES)
-                segments.append(
-                    ScheduleSegment(
-                        start=s_dt.isoformat(timespec="minutes"),
-                        end=e_dt.isoformat(timespec="minutes"),
-                        start_slot=seg_start,
-                        end_slot=prev + 1,
-                    )
-                )
-                if nxt is not None:
-                    seg_start = nxt
-            if nxt is not None:
-                prev = nxt
-        out.append(ScheduledTask(task_id=t.id, task_name=t.name, units=units, segments=segments))
+    out = _extract_scheduled_tasks(solver.Value, tasks, all_cands, b, a, start)
 
     result_status = "OPTIMAL" if status == cp_model.OPTIMAL else "FEASIBLE"
     makespan_minutes = (solver.Value(makespan) - now_slot) * SLOT_MINUTES if out else 0

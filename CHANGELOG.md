@@ -26,6 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   from it.
 - `SECURITY.md`, GitHub issue/PR templates, and a `.pre-commit-config.yaml`
   (ruff + mypy).
+- The Schedule tab now shows the solver's best-so-far schedule live while a
+  solve is running, instead of just an elapsed-time/makespan text status —
+  updates with every improving CP-SAT solution found.
 
 ### Changed
 

@@ -1,6 +1,10 @@
 "use strict";
 /* ================= solve (async job + progress + cancel) ================= */
 let solveJob = null, solvePollTimer = null;
+// best-so-far schedule while a solve is running — kept separate from
+// project.schedule so a cancelled/failed solve leaves the last confirmed
+// result in place instead of stranding a half-solved preview there.
+let previewSchedule = null;
 
 function setSolveButton(running) {
   const btn = $("#btnSolve");
@@ -22,6 +26,7 @@ function showSolveProgress(d) {
 
 function finishSolve() {
   solveJob = null;
+  previewSchedule = null;
   clearTimeout(solvePollTimer); solvePollTimer = null;
   setSolveButton(false);
 }
@@ -38,9 +43,14 @@ function pollSolve() {
     }
     if (d.status === "running") {
       showSolveProgress(d);
+      if (d.schedule_preview) {
+        previewSchedule = { tasks: d.schedule_preview };
+        renderSchedule();
+      }
       pollSolve();
       return;
     }
+    previewSchedule = null;
     if (d.status === "done") {
       project.schedule = d.schedule; horizon = d.horizon;
     } else if (d.status === "cancelled") {
@@ -62,6 +72,7 @@ $("#btnSolve").onclick = async () => {
     await saveNow(); // flush pending edits first
     const d = await api(`${P()}/solve`, { method: "POST" });
     solveJob = d.job_id;
+    previewSchedule = null;
     setSolveButton(true);
     activateTab("schedule");
     showSolveProgress({ elapsed_s: 0, best_makespan_minutes: null });
@@ -95,7 +106,7 @@ const ganttTheme = forExport =>
     ? "dark" : "light"];
 
 function scheduleRows() {
-  const sc = project.schedule;
+  const sc = previewSchedule || project.schedule;
   return sc.tasks.map((stt, ti) => {
     const task = project.tasks.find(x => x.id === stt.task_id) || null;
     const segs = stt.segments;
@@ -115,10 +126,17 @@ function scheduleRows() {
 }
 
 function renderSchedule() {
-  const st = $("#status"), wrap = $("#ganttwrap"), sc = project.schedule;
+  const st = $("#status"), wrap = $("#ganttwrap"), sc = previewSchedule || project.schedule;
   $("#detailsPanel").hidden = true;
-  $("#btnExport").disabled = !(sc && sc.status !== "INFEASIBLE" && sc.tasks.length);
+  $("#btnExport").disabled = !(sc && !previewSchedule && sc.status !== "INFEASIBLE" && sc.tasks.length);
   if (!sc) { st.textContent = t("sch.notSolved"); wrap.innerHTML = ""; return; }
+  if (previewSchedule) {
+    // the status line (elapsed time, best makespan so far) belongs to
+    // showSolveProgress() while a solve is running — only draw the Gantt body
+    wrap.innerHTML = buildGanttSVG(false);
+    attachTooltips(wrap);
+    return;
+  }
   if (sc.status === "INFEASIBLE") {
     const hints = (sc.hints || []).length
       ? `<ul class="hints">${sc.hints.map(h => `<li>${esc(h)}</li>`).join("")}</ul>`
@@ -165,7 +183,7 @@ function buildGanttSVG(forExport) {
   const hourW = 2 * pxs;  // pixels per hour; drives gridline/label density
   const th = ganttTheme(forExport);
   const W = Math.round(LEFT + HS * pxs + 12), H = TOP + units.length * ROW + 12;
-  const sc = project.schedule;
+  const sc = previewSchedule || project.schedule;
   let s = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" ` +
     `viewBox="0 0 ${W} ${H}" font-family="Segoe UI,system-ui,sans-serif" font-size="11">`;
   // day bands

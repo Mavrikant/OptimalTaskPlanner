@@ -165,6 +165,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "finished": 0.0,
             "best_makespan_minutes": None,
             "schedule": None,
+            "schedule_preview": None,
             "horizon": None,
             "error": None,
             "cancel": cancel,
@@ -174,8 +175,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             jobs[job_id] = job
         logger.info("solve job %s submitted for project %s", job_id, pid)
 
-        def on_progress(mk: int) -> None:
+        def on_progress(mk: int, tasks_snapshot: list) -> None:
             job["best_makespan_minutes"] = mk
+            job["schedule_preview"] = [st.model_dump() for st in tasks_snapshot]
 
         def run() -> None:
             try:
@@ -220,7 +222,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "elapsed_s": round(elapsed, 1),
             "best_makespan_minutes": job["best_makespan_minutes"],
         }
-        if job["status"] == "done":
+        if job["status"] == "running":
+            if job["schedule_preview"] is not None:
+                out["schedule_preview"] = job["schedule_preview"]
+        elif job["status"] == "done":
             out["schedule"] = job["schedule"]
             out["horizon"] = job["horizon"]
         elif job["status"] == "error":
