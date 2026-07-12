@@ -31,6 +31,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   updates with every improving CP-SAT solution found.
 - A search box on the Tasks tab filters the task list by name; priority
   numbers stay tied to each task's real position, not the filtered view.
+- A browser notification fires when a solve finishes (done, cancelled or
+  failed) while the tab is hidden — solving runs in the background and can
+  take a while, so this is the only way to find out without switching back.
+  Permission is requested on the first "Solve schedule" click.
 
 ### Changed
 

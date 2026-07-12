@@ -142,6 +142,7 @@
   "sch.solveFailed": "Solve failed: {msg}",
   "sch.cancel": "Cancel solve",
   "sch.cancelled": "Solve cancelled.",
+  "sch.notifyDone": "Schedule solved — makespan {makespan}",
   "sch.solving": "Solving… {elapsed}s",
   "sch.bestSoFar": "best so far {makespan}",
   "sch.exportTitle": "LabPlanner schedule",

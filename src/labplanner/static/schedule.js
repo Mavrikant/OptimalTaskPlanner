@@ -31,6 +31,19 @@ function finishSolve() {
   setSolveButton(false);
 }
 
+/* Solving runs in the background and can take a while — if the tab isn't
+   even visible, a notification is the only way the user finds out it's done. */
+function requestNotifyPermission() {
+  if (typeof Notification === "undefined" || Notification.permission !== "default") return;
+  Notification.requestPermission();
+}
+function notifySolveResult(body) {
+  if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+  if (!document.hidden) return; // the status line already shows this — don't double up
+  const n = new Notification("LabPlanner", { body });
+  n.onclick = () => { window.focus(); n.close(); };
+}
+
 function pollSolve() {
   solvePollTimer = setTimeout(async () => {
     if (!solveJob) return;
@@ -39,6 +52,7 @@ function pollSolve() {
       d = await api(`/api/solve/${solveJob}`);
     } catch (e) {
       toast(t("sch.solveFailed", { msg: e.message }), "error");
+      notifySolveResult(t("sch.solveFailed", { msg: e.message }));
       finishSolve(); renderSchedule(); return;
     }
     if (d.status === "running") {
@@ -53,10 +67,13 @@ function pollSolve() {
     previewSchedule = null;
     if (d.status === "done") {
       project.schedule = d.schedule; horizon = d.horizon;
+      notifySolveResult(t("sch.notifyDone", { makespan: fmtHours(d.schedule.makespan_minutes || 0) }));
     } else if (d.status === "cancelled") {
       toast(t("sch.cancelled"));
+      notifySolveResult(t("sch.cancelled"));
     } else if (d.status === "error") {
       toast(t("sch.solveFailed", { msg: d.error || "" }), "error");
+      notifySolveResult(t("sch.solveFailed", { msg: d.error || "" }));
     }
     finishSolve();
     renderSchedule();
@@ -70,6 +87,7 @@ $("#btnSolve").onclick = async () => {
   }
   try {
     await saveNow(); // flush pending edits first
+    requestNotifyPermission();
     const d = await api(`${P()}/solve`, { method: "POST" });
     solveJob = d.job_id;
     previewSchedule = null;

@@ -142,6 +142,7 @@
   "sch.solveFailed": "Çözüm başarısız: {msg}",
   "sch.cancel": "Çözümü iptal et",
   "sch.cancelled": "Çözüm iptal edildi.",
+  "sch.notifyDone": "Çizelge çözüldü — toplam süre {makespan}",
   "sch.solving": "Çözülüyor… {elapsed} sn",
   "sch.bestSoFar": "şu ana dek en iyi {makespan}",
   "sch.exportTitle": "LabPlanner çizelgesi",
