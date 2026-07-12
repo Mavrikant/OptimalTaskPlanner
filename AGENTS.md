@@ -28,7 +28,7 @@ optimal-task-planner --reload     # run the dev server at http://127.0.0.1:8000
 
 npm install                                          # once, installs Playwright
 npx playwright install --with-deps chromium           # once, downloads the browser
-optimal-task-planner --port 8010 --data-dir /tmp/lp-e2e-data &  # server for e2e (separate data dir)
+optimal-task-planner --port 8010 --data-dir /tmp/optimal-task-planner-e2e-data &  # server for e2e (separate data dir)
 OPTIMAL_TASK_PLANNER_BASE_URL=http://127.0.0.1:8010 npx playwright test   # e2e/smoke.spec.js
 ```
 

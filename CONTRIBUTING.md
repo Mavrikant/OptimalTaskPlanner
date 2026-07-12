@@ -12,7 +12,7 @@ form.
 
 ```bash
 git clone https://github.com/Mavrikant/OptimalTaskPlanner.git
-cd Optimal Task Planner
+cd OptimalTaskPlanner
 python -m venv .venv
 # Windows: .venv\Scripts\activate    Linux/macOS: source .venv/bin/activate
 pip install -e .[dev]
@@ -44,7 +44,7 @@ test — it's the only automated frontend coverage:
 
 ```bash
 npm install && npx playwright install --with-deps chromium   # once
-optimal-task-planner --port 8010 --data-dir /tmp/lp-e2e-data &
+optimal-task-planner --port 8010 --data-dir /tmp/optimal-task-planner-e2e-data &
 OPTIMAL_TASK_PLANNER_BASE_URL=http://127.0.0.1:8010 npx playwright test
 ```
 
