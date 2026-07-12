@@ -1,10 +1,20 @@
+/* ---------- fonts ---------- */
+@font-face{
+  font-family:"InterVariable";
+  src:url("/static/fonts/InterVariable.woff2") format("woff2");
+  font-weight:100 900;
+  font-style:normal;
+  font-display:swap;
+}
+
 /* ---------- design tokens ---------- */
 :root{
   --bg:#f3f5f9; --panel:#ffffff;
   --border:#e3e7ee; --border-strong:#c9d1dc;
   --text:#101828; --muted:#667085;
-  --accent:#2563eb; --accent-hover:#1d4ed8; --accent-weak:#eef4ff;
-  --accent-weak-hover:#e0ebff;
+  /* deliberately teal, not the ubiquitous Tailwind-blue-600 SaaS default */
+  --accent:#0f766e; --accent-hover:#115e59; --accent-weak:#f0fdfa;
+  --accent-weak-hover:#ccfbf1;
   --green:#16a34a; --green-weak:#bbf7d0;
   --red:#dc2626; --red-weak:#fecaca; --red-hover:#fef2f2;
   --amber:#d97706;
@@ -14,7 +24,7 @@
   --past-a:#eceef2; --past-b:#dde1e7;
   --ok-bg:#dcfce7; --ok-fg:#15803d; --bad-bg:#fee2e2; --bad-fg:#b91c1c;
   --pin-bg:#fef3c7; --fin-bg:#dcfce7;
-  --chip-border:#d4e2ff;
+  --chip-border:#99f6e4;
   --shadow:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.1);
   --shadow-lg:0 8px 24px rgba(16,24,40,.16);
   --radius:10px; --radius-sm:7px;
@@ -25,8 +35,8 @@
   --bg:#11151d; --panel:#1a202c;
   --border:#2a3242; --border-strong:#3b4557;
   --text:#e6eaf2; --muted:#94a0b4;
-  --accent:#3b82f6; --accent-hover:#60a5fa; --accent-weak:#1e2a44;
-  --accent-weak-hover:#253654;
+  --accent:#0d9488; --accent-hover:#2dd4bf; --accent-weak:#0f2e2b;
+  --accent-weak-hover:#15423d;
   --green:#4ade80; --green-weak:#1d5c33;
   --red:#f87171; --red-weak:#7f2d2d; --red-hover:#3a1d1d;
   --amber:#fbbf24;
@@ -36,14 +46,14 @@
   --past-a:#232936; --past-b:#1b212c;
   --ok-bg:#14532d; --ok-fg:#4ade80; --bad-bg:#7f1d1d; --bad-fg:#fca5a5;
   --pin-bg:#453a12; --fin-bg:#14532d;
-  --chip-border:#2c3e5f;
+  --chip-border:#1f4a44;
   --shadow:0 1px 2px rgba(0,0,0,.35),0 1px 3px rgba(0,0,0,.45);
   --shadow-lg:0 8px 24px rgba(0,0,0,.55);
 }
 *{box-sizing:border-box}
 html,body{margin:0}
 body{
-  font:14px/1.5 "Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+  font:14px/1.5 InterVariable,"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
   background:var(--bg);color:var(--text);
   min-height:100vh;display:flex;flex-direction:column;
 }

@@ -38,6 +38,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Visual refresh: self-hosted Inter (variable font, no CDN) instead of the OS
+  default font stack; the accent color moved from stock Tailwind blue to a
+  deliberately-chosen teal; the Gantt's 16-color task palette is now
+  generated from that same teal (evenly-rotated hues at matched
+  saturation/lightness) instead of an off-the-shelf categorical scheme.
+  Verified against computed WCAG contrast ratios, not just eyeballed.
 - The 404 returned for an unknown/expired solve job now explains that solve
   progress isn't kept across a server restart, instead of just "Unknown
   solve job".

@@ -94,6 +94,8 @@ src/labplanner/
     insights.js          Insights tab: KPI tiles, utilisation bars, load heatmap.
     boot.js              App bootstrap — always loads last.
     locales/*.json      One file per language; en.json is the source of truth for keys.
+    fonts/               Self-hosted InterVariable.woff2 (OFL-licensed, LICENSE.txt
+                        alongside it) — no CDN/Google Fonts, this is a local-only app.
     index.html, style.css
 
 tests/
@@ -149,6 +151,14 @@ scripts/
   `pyproject.toml`) is the only enforced style; no separate formatter config beyond
   `ruff format`. Module docstrings explain *why*/*invariants*, not what the code
   obviously does — match that tone rather than adding narrative comments.
+- **Design tokens** (`style.css` `:root`/`[data-theme="dark"]`): `--accent` is a
+  deliberately-chosen teal, not the ubiquitous Tailwind-blue-600 SaaS default —
+  don't casually change it back. The Gantt's `PALETTE` (`schedule.js`) is 16 hues
+  rotated evenly from that same accent at matched saturation/lightness (not a
+  hand-picked or off-the-shelf categorical scheme); if it ever needs more colors
+  or retuning, regenerate the whole set the same way (`colorsys.hls_to_rgb` at
+  fixed S/L, hue offsets of `360/n`) rather than hand-picking one new color that
+  won't match the family.
 - Prefer small, focused changes; this is a young single-package project without
   internal abstraction layers to preserve — don't add framework/plugin machinery
   the codebase doesn't already have a need for.

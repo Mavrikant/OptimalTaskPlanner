@@ -102,9 +102,12 @@ $("#btnSolve").onclick = async () => {
 };
 
 /* ================= schedule: gantt + details + export ================= */
-const PALETTE = ["#4c78a8", "#f58518", "#54a24b", "#e45756", "#72b7b2", "#b279a2",
-  "#ff9da6", "#9d755d", "#bab0ac", "#d67195", "#86bcb6", "#e0ac2b",
-  "#8390fa", "#59a14f", "#c66", "#69c"];
+/* 16 hues evenly rotated from the --accent teal at matched saturation/lightness
+   (see AGENTS.md), instead of a generic off-the-shelf categorical palette —
+   coordinated with the rest of the UI rather than just "a chart color set". */
+const PALETTE = ["#2a9d93", "#2a7c9d", "#2a519d", "#2e2a9d", "#592a9d", "#852a9d",
+  "#9d2a8a", "#9d2a5f", "#9d2a34", "#9d4b2a", "#9d762a", "#999d2a",
+  "#6e9d2a", "#429d2a", "#2a9d3c", "#2a9d68"];
 
 /* Gantt SVG colours per theme (the HTML export is always rendered light) */
 const GANTT_COLORS = {
