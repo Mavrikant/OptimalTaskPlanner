@@ -82,14 +82,36 @@ The published read-only page a share link opens — no editing UI, just the plan
 
 ## Quick start
 
+**Python users** — install from PyPI (or run without installing via [uv](https://docs.astral.sh/uv/)):
+
 ```bash
-pip install git+https://github.com/Mavrikant/OptimalTaskPlanner.git
+pip install optimal-task-planner     # or: pipx install optimal-task-planner
 optimal-task-planner
 ```
 
-Then open <http://127.0.0.1:8000>. A sample project is created on first run.
+```bash
+uvx optimal-task-planner             # zero-install one-liner
+```
 
-From a source checkout:
+The server starts, prints its data directory, and opens the UI in your browser
+(<http://127.0.0.1:8000>). A sample project is created on first run.
+
+**Docker** — run it as a small (LAN) server:
+
+```bash
+docker run -d -p 8000:8000 -v otp-data:/data ghcr.io/mavrikant/optimal-task-planner
+```
+
+or use the [docker-compose.yml](docker-compose.yml) in this repo: `docker compose up -d`.
+Projects persist in the `/data` volume.
+
+**Windows, no Python** — download `optimal-task-planner-X.Y.Z-windows-x64.exe`
+from the [latest release](https://github.com/Mavrikant/OptimalTaskPlanner/releases/latest)
+and double-click it. A console window shows the server log and the UI opens in
+your browser. (The executable is unsigned, so SmartScreen may warn on first
+run — choose "More info" → "Run anyway".)
+
+**From a source checkout** (development):
 
 ```bash
 python -m venv .venv
@@ -116,9 +138,18 @@ Server-level settings come from CLI flags or environment variables:
 | ------------ | ----------------------------- | ----------- | ------------------------------- |
 | `--host`     | `OPTIMAL_TASK_PLANNER_HOST`             | `127.0.0.1` | Bind address                    |
 | `--port`     | `OPTIMAL_TASK_PLANNER_PORT`             | `8000`      | Port                            |
-| `--data-dir` | `OPTIMAL_TASK_PLANNER_DATA_DIR`         | `./data`    | Where projects & backups live   |
+| `--data-dir` | `OPTIMAL_TASK_PLANNER_DATA_DIR`         | *(see below)* | Where projects & backups live |
 | `--days`     | `OPTIMAL_TASK_PLANNER_DAYS`             | `14`        | Default horizon length for new projects |
+| `--no-browser` | `OPTIMAL_TASK_PLANNER_NO_BROWSER`     | off         | Don't open the UI in a browser on startup |
 | —            | `OPTIMAL_TASK_PLANNER_SOLVER_TIME_LIMIT`| `20`        | Default CP-SAT time limit for new projects (seconds) |
+
+The default data directory is the per-user platform data dir —
+`%LOCALAPPDATA%\optimal-task-planner` (Windows),
+`~/.local/share/optimal-task-planner` (Linux),
+`~/Library/Application Support/optimal-task-planner` (macOS) — unless a
+`./data` directory already exists in the working directory (the pre-0.2
+default), which then takes precedence. The resolved path is printed at
+startup.
 
 Horizon length, CP-SAT time limit and parallel workers are *project* settings (gear icon
 next to **Solve**); new projects inherit the CLI/env defaults above. Working hours and

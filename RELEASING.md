@@ -33,11 +33,32 @@ the tag does the rest — build, verify, and publish a GitHub Release.
      loudly on a forgotten changelog entry),
    - builds the sdist and wheel and checks their metadata (`twine check`),
    - creates a GitHub Release for the tag, with that changelog section as
-     the release notes and the built sdist/wheel attached.
+     the release notes and the built sdist/wheel attached,
+   - publishes the sdist/wheel to [PyPI](https://pypi.org/p/optimal-task-planner)
+     via Trusted Publishing (the `publish-pypi` job),
+   - builds and pushes the multi-arch Docker image to
+     `ghcr.io/mavrikant/optimal-task-planner` tagged `X.Y.Z`, `X.Y` and
+     `latest` (the `publish-docker` job),
+   - builds the standalone Windows executable with PyInstaller, smoke-tests
+     it, and attaches it to the release as
+     `optimal-task-planner-X.Y.Z-windows-x64.exe` (the `windows-exe` job).
 
-No PyPI publishing yet — install from a release's attached wheel or straight
-from the tag (`pip install git+https://github.com/Mavrikant/OptimalTaskPlanner.git@vX.Y.Z`)
-until that's set up.
+## First-time setup (one-time, maintainer-only)
+
+The publish jobs need three things configured once; none involve secrets or
+tokens stored in the repo:
+
+1. **PyPI Trusted Publisher** — on [pypi.org](https://pypi.org) (account with
+   2FA): Account settings → Publishing → *Add a new pending publisher* with
+   project name `optimal-task-planner`, owner `Mavrikant`, repository
+   `OptimalTaskPlanner`, workflow `release.yml`, environment `pypi`. The
+   first successful publish claims the project name.
+2. **GitHub environment** — repo Settings → Environments → create `pypi`.
+   Optionally add yourself as a required reviewer to get a manual approval
+   gate before each PyPI publish.
+3. **GHCR visibility** — after the first release, open your GitHub profile →
+   Packages → `optimal-task-planner` → Package settings → change visibility
+   to **Public** (workflow-created packages default to private).
 
 ## Versioning
 

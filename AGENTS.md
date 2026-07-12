@@ -28,7 +28,7 @@ optimal-task-planner --reload     # run the dev server at http://127.0.0.1:8000
 
 npm install                                          # once, installs Playwright
 npx playwright install --with-deps chromium           # once, downloads the browser
-optimal-task-planner --port 8010 --data-dir /tmp/optimal-task-planner-e2e-data &  # server for e2e (separate data dir)
+optimal-task-planner --port 8010 --data-dir /tmp/optimal-task-planner-e2e-data --no-browser &  # server for e2e (separate data dir)
 OPTIMAL_TASK_PLANNER_BASE_URL=http://127.0.0.1:8010 npx playwright test   # e2e/smoke.spec.js
 ```
 
@@ -119,11 +119,20 @@ scripts/
   extract_changelog.py  Prints one version's CHANGELOG section; used by the
                          release workflow to build GitHub Release notes.
 
+packaging/
+  pyinstaller_entry.py  Entry script for the frozen Windows executable.
+  optimal-task-planner.spec  PyInstaller spec (run from the repo root).
+
+Dockerfile, .dockerignore, docker-compose.yml
+                       The GHCR image (python:3.13-slim, non-root, /data
+                        volume) and a LAN-server compose example.
+
 .github/workflows/
   ci.yml               Lint, format check, test matrix, Playwright e2e,
-                        package-build check — every push/PR.
-  release.yml           Tag-triggered (`vX.Y.Z`): re-verifies, builds, and
-                         publishes a GitHub Release. See RELEASING.md.
+                        package-build check, Docker build smoke — every push/PR.
+  release.yml           Tag-triggered (`vX.Y.Z`): re-verifies, builds, then
+                         publishes a GitHub Release, PyPI (Trusted Publishing),
+                         the GHCR Docker image and a Windows exe. See RELEASING.md.
 ```
 
 ## Conventions
