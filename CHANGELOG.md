@@ -49,6 +49,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The default data directory (when neither `--data-dir` nor
+  `OPTIMAL_TASK_PLANNER_DATA_DIR` is set) is now the per-user platform data
+  directory (e.g. `%LOCALAPPDATA%\optimal-task-planner` on Windows,
+  `~/.local/share/optimal-task-planner` on Linux, `~/Library/Application
+  Support/optimal-task-planner` on macOS) instead of `./data` relative to
+  wherever the server happened to be started. A pre-existing `./data` in the
+  working directory still takes precedence, so existing setups keep their
+  projects. The server now prints the resolved data directory at startup.
 - Visual refresh: self-hosted Inter (variable font, no CDN) instead of the OS
   default font stack; the accent color moved from stock Tailwind blue to a
   deliberately-chosen teal; the Gantt's 16-color task palette is now

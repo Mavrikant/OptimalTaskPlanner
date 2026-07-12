@@ -30,6 +30,7 @@ dependencies = [
     "ortools>=9.9",
     "pydantic>=2.6",
     "holidays>=0.50",
+    "platformdirs>=4",
 ]
 
 [project.optional-dependencies]

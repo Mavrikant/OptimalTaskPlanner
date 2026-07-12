@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import logging
 import os
+from pathlib import Path
 
 import uvicorn
 
@@ -30,10 +31,14 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     args = parser.parse_args(argv)
 
+    # Resolve to an absolute path before handing it around: the uvicorn factory
+    # and --reload workers may run with a different CWD than this process.
+    data_dir = Path(args.data_dir).expanduser().resolve()
+
     # Pass settings via env so uvicorn's factory (and --reload workers) pick them up.
     os.environ["OPTIMAL_TASK_PLANNER_HOST"] = args.host
     os.environ["OPTIMAL_TASK_PLANNER_PORT"] = str(args.port)
-    os.environ["OPTIMAL_TASK_PLANNER_DATA_DIR"] = args.data_dir
+    os.environ["OPTIMAL_TASK_PLANNER_DATA_DIR"] = str(data_dir)
     os.environ["OPTIMAL_TASK_PLANNER_DAYS"] = str(args.days)
 
     logging.basicConfig(
@@ -41,6 +46,7 @@ def main(argv: list[str] | None = None) -> None:
     )
 
     print(f"Optimal Task Planner {__version__} — http://{args.host}:{args.port}")
+    print(f"Data directory: {data_dir}")
     uvicorn.run(
         "optimal_task_planner.api:create_app",
         factory=True,
