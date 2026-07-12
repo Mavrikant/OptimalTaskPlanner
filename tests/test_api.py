@@ -17,6 +17,19 @@ def test_index_serves_frontend(client):
     assert "Optimal Task Planner" in r.text
 
 
+def test_legacy_app_js_serves_reload_shim(client):
+    # pre-0.2 index.html pages cached without cache headers still request the
+    # long-gone monolith app.js — they must get a cache-refreshing reload, not
+    # a 404 that leaves the page blank
+    r = client.get("/static/app.js")
+    assert r.status_code == 200
+    assert r.headers["content-type"].startswith("text/javascript")
+    assert 'cache: "reload"' in r.text
+    assert "location.reload" in r.text
+    # the real split files are still served by the static mount
+    assert client.get("/static/core.js").status_code == 200
+
+
 def test_default_project_is_seeded(client):
     projects = client.get("/api/projects").json()["projects"]
     assert len(projects) == 1

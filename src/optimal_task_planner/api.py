@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 
@@ -73,6 +73,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.get("/", include_in_schema=False)
     def index() -> FileResponse:
         return FileResponse(STATIC_DIR / "index.html")
+
+    # Self-healing shim for browsers holding a pre-0.2 index.html in their HTTP
+    # cache (cached heuristically before the no-cache middleware existed). That
+    # page loads the long-gone monolith /static/app.js; a 404 would leave it
+    # blank and dead. Instead, refresh the cached copy of "/" and reload — the
+    # fresh index.html never requests app.js, so this runs at most once.
+    @app.get("/static/app.js", include_in_schema=False)
+    def legacy_app_js() -> Response:
+        js = (
+            'fetch(location.href, { cache: "reload" })'
+            ".then(function () { location.reload(); })"
+            ".catch(function () { location.reload(); });"
+        )
+        return Response(js, media_type="text/javascript")
 
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 

@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Browsers that had cached a pre-0.2 `index.html` (served without cache
+  headers before the no-cache fix) showed a blank, dead page after
+  upgrading: the stale page loads the removed `/static/app.js` monolith
+  and got a 404. That URL now serves a tiny shim that re-fetches the page
+  past the HTTP cache and reloads, so such pages heal themselves on the
+  next visit. (A manual Ctrl+F5 also fixes it.)
+
 ## [0.2.0] - 2026-07-12
 
 ### Added
