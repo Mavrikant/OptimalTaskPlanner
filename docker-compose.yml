@@ -1,0 +1,14 @@
+# Run Optimal Task Planner as a small LAN server:
+#   docker compose up -d
+# then open http://<this-machine>:8000. Projects persist in the named volume.
+services:
+  optimal-task-planner:
+    image: ghcr.io/mavrikant/optimal-task-planner:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - otp-data:/data
+    restart: unless-stopped
+
+volumes:
+  otp-data:

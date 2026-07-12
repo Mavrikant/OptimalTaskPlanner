@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- An official Docker image, published to
+  `ghcr.io/mavrikant/optimal-task-planner` on every release (amd64 +
+  arm64). It listens on 0.0.0.0:8000, stores projects in the `/data`
+  volume, runs as a non-root user and ships a health check; a
+  `docker-compose.yml` example is included in the repo.
+
 - Releases are now published to PyPI via Trusted Publishing, so
   `pip install optimal-task-planner` (or a zero-install
   `uvx optimal-task-planner`) works — no more installing from a git URL.

@@ -75,7 +75,7 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Start server
         run: |
-          optimal-task-planner --port 8010 --data-dir /tmp/optimal-task-planner-e2e-data &
+          optimal-task-planner --port 8010 --data-dir /tmp/optimal-task-planner-e2e-data --no-browser &
           timeout 30 bash -c 'until curl -sf http://127.0.0.1:8010/api/health; do sleep 1; done'
       - name: Run e2e tests
         run: npx playwright test
@@ -104,3 +104,19 @@ jobs:
         run: python -m build
       - name: Check package metadata
         run: twine check dist/*
+
+  # Build-only smoke for the Dockerfile (amd64, no push) so a broken image
+  # surfaces on the PR instead of failing the tag-triggered release publish.
+  docker:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build image
+        run: docker build -t optimal-task-planner:ci .
+      - name: Smoke test image
+        run: |
+          docker run -d --name otp -p 8000:8000 optimal-task-planner:ci
+          timeout 60 bash -c 'until curl -sf http://127.0.0.1:8000/api/health; do sleep 1; done'
+          docker exec otp whoami | grep -qx app
+          docker rm -f otp
