@@ -52,6 +52,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `tasks.js`, `schedule.js`, `insights.js` and `boot.js`, loaded in that
   order as plain `<script>` tags — still no framework, no build step, no ES
   modules, purely a mechanical split with no behavior change.
+- Copy across the UI (English and Turkish) and the project docs now frames
+  the Resources tab as a general resource pool — equipment *or* people —
+  rather than lab equipment specifically; the underlying data model already
+  supported named, individually-schedulable units of any kind, this only
+  updates the wording to match.
 
 ### Fixed
 

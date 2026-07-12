@@ -85,7 +85,7 @@ src/optimal_task_planner/
                         & modal — foundational, everything else depends on it.
     shell.js            Onboarding tour, theme/tab/language chrome, project
                         switcher (new/rename/duplicate/import/export/backups).
-    resources.js        Resources tab: equipment pool, unit availability, the
+    resources.js        Resources tab: resource pool (equipment or people), unit availability, the
                         shared paintable slot grid (also used by tasks.js —
                         must stay loaded before it), working calendar/holidays.
     tasks.js            Tasks tab: task list (drag/keyboard reorder) + editor.

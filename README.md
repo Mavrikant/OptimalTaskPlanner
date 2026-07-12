@@ -4,12 +4,13 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](pyproject.toml)
 
-**Optimal lab equipment scheduling over a rolling horizon, powered by
+**Optimal resource scheduling over a rolling horizon, powered by
 [Google OR-Tools CP-SAT](https://developers.google.com/optimization/cp/cp_solver).**
 
-You describe your equipment pool, your tasks and their constraints — Optimal Task Planner computes a
-provably optimal schedule and shows it as an interactive Gantt chart. Everything runs locally:
-a small FastAPI backend plus a dependency-free vanilla-JS frontend.
+You describe your resource pool — equipment, staff, or both — your tasks and their
+constraints, and Optimal Task Planner computes a provably optimal schedule and shows it
+as an interactive Gantt chart. Everything runs locally: a small FastAPI backend plus a
+dependency-free vanilla-JS frontend.
 
 ![Schedule view](docs/screenshot.png)
 
@@ -27,9 +28,10 @@ a small FastAPI backend plus a dependency-free vanilla-JS frontend.
 - **Responsive at scale** — solves run as cancellable background jobs with live progress
   (elapsed time and best makespan so far); the conflict model is pruned so large projects
   stay solvable. Time limit, parallel workers and horizon length are per-project settings.
-- **Equipment pool with per-unit availability** — mark an individual unit (e.g. `VSG-1`)
-  as under maintenance and the solver will never assign it during that window. Units can
-  carry custom names (serial numbers, brands) instead of automatic numbering.
+- **Resource pool with per-unit availability** — equipment (e.g. `VSG-1`) or people
+  (e.g. a named technician): mark a unit unavailable (maintenance, leave, a booking) and
+  the solver will never assign it during that window. Units can carry custom names
+  (serial numbers, brands, or a person's name) instead of automatic numbering.
 - **Configurable working calendar** — work start/end times in 30-minute steps, plus public
   holidays: pick dates manually or auto-fill any country's official holidays
   (via the [`holidays`](https://pypi.org/project/holidays/) package).
@@ -67,8 +69,9 @@ optimal-task-planner
 
 ## Usage
 
-1. **Resources tab** — define your equipment types and unit counts, set working hours,
-   add public holidays, and paint per-unit maintenance windows.
+1. **Resources tab** — define your resource types (equipment, people, or both) and unit
+   counts, set working hours, add public holidays, and paint per-unit unavailability
+   windows.
 2. **Tasks tab** — add tasks, set durations and constraints, paint preferred/unavailable
    slots, and drag tasks to set priority (top = most important).
 3. Press **Solve schedule** — the schedule opens full-screen with a Gantt chart per

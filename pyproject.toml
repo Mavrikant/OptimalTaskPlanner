@@ -5,16 +5,17 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "optimal-task-planner"
 version = "0.1.0"
-description = "Optimal lab equipment scheduling over a rolling horizon, powered by CP-SAT"
+description = "Optimal resource scheduling over a rolling horizon, powered by CP-SAT — equipment, staff, or both"
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
 authors = [{ name = "Optimal Task Planner contributors" }]
-keywords = ["scheduling", "cp-sat", "or-tools", "laboratory", "gantt", "planning"]
+keywords = ["scheduling", "cp-sat", "or-tools", "resource-planning", "gantt", "planning"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Web Environment",
     "Intended Audience :: Science/Research",
+    "Intended Audience :: Other Audience",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
