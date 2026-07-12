@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- The server now opens the web UI in the default browser once it is ready.
+  Opt out with `--no-browser` or `OPTIMAL_TASK_PLANNER_NO_BROWSER=1`;
+  `--reload` (development) never opens one. With `--host 0.0.0.0` the
+  startup line now prints the reachable `http://127.0.0.1:<port>` plus a
+  "listening on all interfaces" note instead of a literal 0.0.0.0 URL.
+
 - Tag-triggered release process: `git tag vX.Y.Z && git push --tags` re-runs
   the test suite, verifies `pyproject.toml` and `CHANGELOG.md` agree with the
   tag, then builds and publishes a GitHub Release with the changelog section

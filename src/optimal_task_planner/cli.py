@@ -3,14 +3,46 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import logging
 import os
+import threading
+import time
+import urllib.request
+import webbrowser
+from collections.abc import Mapping
 from pathlib import Path
 
 import uvicorn
 
 from . import __version__
 from .config import Settings
+
+
+def _truthy(value: str | None) -> bool:
+    return (value or "").strip().lower() not in ("", "0", "false", "no")
+
+
+def _should_open_browser(no_browser: bool, reload_: bool, env: Mapping[str, str]) -> bool:
+    """Open by default; suppressed by flag, env, or dev --reload respawns."""
+    if no_browser or reload_:
+        return False
+    return not _truthy(env.get("OPTIMAL_TASK_PLANNER_NO_BROWSER"))
+
+
+def _open_browser_when_ready(url: str, health_url: str, timeout_s: float = 15.0) -> None:
+    """Poll the health endpoint, then open the UI — uvicorn.run() with a string
+    factory offers no ready callback, so readiness is observed from outside."""
+    deadline = time.monotonic() + timeout_s
+    while time.monotonic() < deadline:
+        try:
+            urllib.request.urlopen(health_url, timeout=1).close()
+        except OSError:
+            time.sleep(0.2)
+            continue
+        with contextlib.suppress(Exception):  # headless envs have no browser
+            webbrowser.open(url)
+        return
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -28,6 +60,11 @@ def main(argv: list[str] | None = None) -> None:
         "--days", type=int, default=defaults.days, help="planning horizon length in days"
     )
     parser.add_argument("--reload", action="store_true", help="auto-reload (development)")
+    parser.add_argument(
+        "--no-browser",
+        action="store_true",
+        help="do not open the web UI in a browser on startup",
+    )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     args = parser.parse_args(argv)
 
@@ -45,8 +82,17 @@ def main(argv: list[str] | None = None) -> None:
         level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
     )
 
-    print(f"Optimal Task Planner {__version__} — http://{args.host}:{args.port}")
+    # Loopback is always reachable even when bound to all interfaces; printing
+    # (or opening) literal 0.0.0.0 would be misleading.
+    display_host = "127.0.0.1" if args.host == "0.0.0.0" else args.host
+    url = f"http://{display_host}:{args.port}"
+    suffix = " (listening on all interfaces)" if args.host == "0.0.0.0" else ""
+    print(f"Optimal Task Planner {__version__} — {url}{suffix}")
     print(f"Data directory: {data_dir}")
+    if _should_open_browser(args.no_browser, args.reload, os.environ):
+        threading.Thread(
+            target=_open_browser_when_ready, args=(url, f"{url}/api/health"), daemon=True
+        ).start()
     uvicorn.run(
         "optimal_task_planner.api:create_app",
         factory=True,
