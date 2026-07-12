@@ -60,10 +60,11 @@ src/optimal_task_planner/
   calendar_utils.py  Slot arithmetic, work-hour masks, public-holiday lookups
                       (wraps the `holidays` package).
   storage.py          File-based persistence: data_dir/projects/<id>.json,
-                      automatic backup snapshots, forward-only schema migrations.
+                      automatic backup snapshots, forward-only schema migrations,
+                      published share pages (data_dir/shares/).
   api.py              FastAPI routes — projects CRUD, background solve jobs,
-                      holidays, health. Thin: validation lives in models.py,
-                      logic lives in solver.py/storage.py.
+                      share-link publishing, holidays, health. Thin: validation
+                      lives in models.py, logic lives in solver.py/storage.py.
   config.py           Settings.from_env() — server-level config (host/port/
                       data-dir/days/solver-time-limit) from CLI flags or
                       OPTIMAL_TASK_PLANNER_* env vars.
@@ -92,6 +93,8 @@ src/optimal_task_planner/
     schedule.js          Async solve (job/progress/cancel) + Schedule tab:
                          Gantt SVG, details table, HTML export.
     insights.js          Insights tab: KPI tiles, utilisation bars, load heatmap.
+                        Also hosts the schedule report builder shared by
+                        "Export HTML" and share-link publishing.
     boot.js              App bootstrap — always loads last.
     locales/*.json      One file per language; en.json is the source of truth for keys.
     fonts/               Self-hosted InterVariable.woff2 (OFL-licensed, LICENSE.txt

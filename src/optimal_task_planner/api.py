@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 
@@ -22,6 +22,10 @@ from .storage import ProjectStore
 logger = logging.getLogger(__name__)
 
 STATIC_DIR = Path(__file__).parent / "static"
+
+# Published share pages are single self-contained HTML files (Gantt SVG + data);
+# real ones are well under 1 MB — the cap only guards against runaway payloads.
+MAX_SHARE_HTML_BYTES = 10 * 1024 * 1024
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -62,7 +66,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         # ETag/Last-Modified make revalidation cheap (304); heuristic caching would
         # otherwise keep serving stale frontend assets after an upgrade.
         response = await call_next(request)
-        if request.url.path == "/" or request.url.path.startswith("/static"):
+        if request.url.path == "/" or request.url.path.startswith(("/static", "/share/")):
             response.headers["Cache-Control"] = "no-cache"
         return response
 
@@ -243,6 +247,39 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             )
         job["cancel"].set()
         return {"ok": True}
+
+    # ---- share links (published read-only schedule pages) ---------------------
+    # The page itself is built client-side by the same code as the "Export HTML"
+    # report, so the published view can't drift from what the planner saw; the
+    # server only stores and serves it. No auth by design: the whole app is an
+    # unauthenticated local/LAN tool, and the share page is its read-only subset.
+
+    @app.post("/api/projects/{pid}/share")
+    def publish_share(pid: str, payload: dict) -> dict:
+        load_or_404(pid)
+        html = payload.get("html")
+        if not isinstance(html, str) or not html.strip():
+            raise HTTPException(status_code=422, detail="html must be a non-empty string")
+        if len(html.encode("utf-8")) > MAX_SHARE_HTML_BYTES:
+            raise HTTPException(status_code=413, detail="share page too large")
+        token = store.publish_share(pid, html)
+        return {"token": token, "path": f"/share/{token}"}
+
+    @app.delete("/api/projects/{pid}/share")
+    def unpublish_share(pid: str) -> dict:
+        load_or_404(pid)
+        store.unpublish_share(pid)  # idempotent: unpublishing twice is not an error
+        return {"ok": True}
+
+    @app.get("/share/{token}", response_class=HTMLResponse)
+    def share_page(token: str) -> HTMLResponse:
+        try:
+            return HTMLResponse(store.load_share(token))
+        except FileNotFoundError as e:
+            raise HTTPException(
+                status_code=404,
+                detail="Unknown share link — it may have been unpublished, or its project deleted",
+            ) from e
 
     # ---- backups --------------------------------------------------------------
 

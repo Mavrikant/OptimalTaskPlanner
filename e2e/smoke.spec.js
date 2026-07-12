@@ -26,4 +26,16 @@ test("loads, solves the sample project, and renders a schedule", async ({ page }
     path: path.join(__dirname, "..", "docs", "screenshot.png"),
     clip: { x: 0, y: 0, width: 1280, height: 800 },
   });
+
+  // Publish a read-only share link and confirm the published page renders the
+  // same Gantt (it is a self-contained snapshot served at /share/<token>).
+  await page.locator("#btnShare").click();
+  const shareUrl = await page.locator("#shareUrl").inputValue();
+  expect(shareUrl).toContain("/share/");
+  await page.locator("#modalOk").click();
+
+  const viewer = await page.context().newPage();
+  await viewer.goto(shareUrl);
+  await expect(viewer.locator("#ganttwrap svg")).toBeVisible();
+  await viewer.close();
 });

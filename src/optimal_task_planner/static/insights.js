@@ -113,7 +113,63 @@ function downloadBlob(content, type, filename) {
 }
 const exportStamp = () => (project.schedule.horizon_start || "export").replace(/-/g, "");
 
-$("#btnExport").onclick = () => exportHTML();
+$("#btnExport").onclick = () => {
+  const html = buildScheduleReportHTML(t("sch.exportedAt", { at: fmtDT(new Date()) }));
+  if (html) downloadBlob(html, "text/html", `optimal-task-planner-schedule-${exportStamp()}.html`);
+};
+
+/* Publish the same self-contained report server-side at a stable /share/<token>
+   URL — a read-only page anyone who can reach the server can open. Clicking
+   again republishes the current schedule to the same link. */
+$("#btnShare").onclick = async () => {
+  const html = buildScheduleReportHTML(t("share.publishedAt", { at: fmtDT(new Date()) }));
+  if (!html) return;
+  try {
+    const d = await api(`${P()}/share`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ html }),
+    });
+    showShareModal(location.origin + d.path);
+  } catch (e) {
+    toast(t("share.failed", { msg: e.message }), "error");
+  }
+};
+
+function showShareModal(url) {
+  const localOnly = ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname);
+  openModal({
+    title: t("share.title"),
+    body: `<p>${esc(t("share.hint"))}</p>
+      <div class="row">
+        <input id="shareUrl" type="text" readonly value="${esc(url)}" style="flex:1">
+        <button id="btnCopyShare" class="btn icon" title="${esc(t("share.copy"))}"
+          aria-label="${esc(t("share.copy"))}">${icon("copy")}</button>
+      </div>` +
+      (localOnly ? `<p class="muted small">${esc(t("share.lanHint"))}</p>` : "") +
+      `<p><button id="btnUnpublish" class="btn danger">${esc(t("share.unpublish"))}</button></p>`,
+    hideCancel: true,
+  });
+  $("#btnCopyShare").onclick = async () => {
+    try {
+      if (!navigator.clipboard) throw new Error("no clipboard API");
+      await navigator.clipboard.writeText(url);
+    } catch (_) {
+      // plain-http LAN origins have no navigator.clipboard — fall back
+      $("#shareUrl").select();
+      document.execCommand("copy");
+    }
+    toast(t("share.copied"), "success");
+  };
+  $("#btnUnpublish").onclick = async () => {
+    try {
+      await api(`${P()}/share`, { method: "DELETE" });
+      toast(t("share.unpublished"));
+      closeModal();
+    } catch (e) {
+      toast(t("share.failed", { msg: e.message }), "error");
+    }
+  };
+}
 
 // CSS the exported viewer needs so the Gantt renders exactly like the app
 // (light theme, concrete colours — the export is standalone).
@@ -150,6 +206,9 @@ function ganttViewerScript() {
   src += `var project={equipment:${jsonSafe(project.equipment)},tasks:${jsonSafe(project.tasks)},` +
     `schedule:${jsonSafe(sc)}};\n`;
   src += `var horizon=${jsonSafe(horizon)};\n`;
+  // the report is always a confirmed schedule — no live solve preview here,
+  // but buildGanttSVG/scheduleRows reference the variable and need it defined
+  src += "var previewSchedule=null;\n";
   src += `var PALETTE=${jsonSafe(PALETTE)},GANTT_COLORS=${jsonSafe(GANTT_COLORS)},ganttZoom=1;\n`;
   src += `var $=function(s){return document.querySelector(s);};\n`;
   src += `function t(k,vars){var s=(I18N[LANG]&&I18N[LANG][k])||k;` +
@@ -168,8 +227,11 @@ function ganttViewerScript() {
   return src;
 }
 
-function exportHTML() {
-  const sc = project.schedule; if (!sc || !sc.tasks.length) return;
+/* One builder for both consumers — the downloaded export and the published
+   share page — so the two can never drift apart. `stamp` is the provenance
+   line ("Exported {at}" / "Published {at}") shown next to the solve metadata. */
+function buildScheduleReportHTML(stamp) {
+  const sc = project.schedule; if (!sc || !sc.tasks.length) return null;
   const cols = ["#", "sch.colTask", "sch.colStart", "sch.colEnd", "sch.colDuration",
     "sch.colUnits", "sch.colDeadline", "sch.colStatus"]
     .map(k => `<th>${k === "#" ? "#" : esc(t(k))}</th>`).join("");
@@ -203,14 +265,14 @@ function exportHTML() {
   const html = `<!DOCTYPE html>
 <html lang="${LANG}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(t("sch.exportTitle"))} — ${esc(sc.horizon_start || "")}</title>
+<title>${esc(project.name)} — ${esc(t("sch.exportTitle"))}</title>
 <style>${css}</style></head><body>
-<h1>${esc(t("sch.exportTitle"))}</h1>
+<h1>${esc(project.name)} — ${esc(t("sch.exportTitle"))}</h1>
 <div class="meta">${esc(t("sch.meta", {
     at: sc.solved_at ? fmtDT(sc.solved_at) : "",
     from: sc.horizon_start ? fmtDateLong(sc.horizon_start) : "",
   }))}
- · ${esc(t("sch.exportedAt", { at: fmtDT(new Date()) }))}</div>
+ · ${esc(stamp)}</div>
 <div class="schedule-head">
   <div class="zoom-group" role="group">
     ${zbtn("zoomOut", "sch.zoomOut", "zOut()")}
@@ -225,7 +287,7 @@ function exportHTML() {
 <table><thead><tr>${cols}</tr></thead><tbody>${body}</tbody></table>
 <script>${ganttViewerScript()}</script>
 </body></html>`;
-  downloadBlob(html, "text/html", `optimal-task-planner-schedule-${exportStamp()}.html`);
+  return html;
 }
 
 let resizeTimer = null;

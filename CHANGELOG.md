@@ -35,6 +35,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   failed) while the tab is hidden — solving runs in the background and can
   take a while, so this is the only way to find out without switching back.
   Permission is requested on the first "Solve schedule" click.
+- README: an animated demo GIF (define → solve → inspect → share, including
+  the Gantt updating live with the solver's best-so-far schedule while a
+  solve runs) and a screenshot gallery (Tasks, Resources, Insights, dark
+  mode, and the published share page).
+- Shareable read-only schedule link: a Share button on the Schedule tab
+  publishes the current schedule (the same self-contained page as "Export
+  HTML") to a stable `/share/<token>` URL that anyone who can reach the
+  server can open — view-only, no editing UI. Republishing after a re-solve
+  updates the same link; unpublish from the share dialog. The page is
+  removed when its project is deleted. The report header now also names the
+  project, so shared and exported pages identify which plan they show.
 
 ### Changed
 
@@ -60,6 +71,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The "Export HTML" report's Gantt rendered blank: the live solve-preview
+  feature made the shared Gantt renderer reference a `previewSchedule`
+  variable that the exported page's embedded script never defined, so its
+  first draw threw. Caught while adding the share-link page, which reuses
+  the same report builder; both now render again.
 - `ProjectStore.list()` renamed to `list_projects()` — as a method literally
   named `list`, it shadowed the builtin `list` type within the class body.
 - `solver.py` now uses OR-Tools' modern, fully-typed snake_case CP-SAT API

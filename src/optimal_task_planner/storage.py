@@ -4,6 +4,7 @@ Layout::
 
     data_dir/projects/<id>.json    one project per file (its name lives inside)
     data_dir/backups/<id>/<ts>.json  automatic snapshots (newest BACKUP_KEEP kept)
+    data_dir/shares/<id>--<token>.html  published read-only schedule pages
 
 The legacy single-file layout (``data_dir/project.json``) is migrated
 automatically the first time the store is used.
@@ -161,6 +162,7 @@ class ProjectStore:
         self.data_dir = Path(data_dir)
         self.projects_dir = self.data_dir / "projects"
         self.backups_dir = self.data_dir / "backups"
+        self.shares_dir = self.data_dir / "shares"
 
     # -- paths & existence
 
@@ -223,6 +225,7 @@ class ProjectStore:
             raise FileNotFoundError(pid)
         self._snapshot(pid, force=True)
         path.unlink()
+        self.unpublish_share(pid)  # a published plan must not outlive its project
 
     def duplicate(self, pid: str) -> str:
         project = self.load(pid)
@@ -313,6 +316,49 @@ class ProjectStore:
         project = Project.model_validate(migrate(raw))
         self._snapshot(pid, force=True)  # keep the pre-restore state recoverable
         self._write(pid, project)
+
+    # -- share links (published read-only schedule pages)
+
+    def publish_share(self, pid: str, html: str) -> str:
+        """Store the published page and return its token.
+
+        The token is minted once per project and reused on republish, so the
+        share URL stays stable while its content is updated in place.
+        """
+        if not self.exists(pid):
+            raise FileNotFoundError(pid)
+        self.shares_dir.mkdir(parents=True, exist_ok=True)
+        existing = sorted(self.shares_dir.glob(f"{pid}--*.html"))
+        token = existing[0].stem.rsplit("--", 1)[1] if existing else uuid.uuid4().hex[:16]
+        fd, tmp = tempfile.mkstemp(dir=self.shares_dir, suffix=".tmp")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                f.write(html)
+            os.replace(tmp, self.shares_dir / f"{pid}--{token}.html")
+        finally:
+            if os.path.exists(tmp):
+                os.unlink(tmp)
+        logger.info("published share page for project %s (token %s)", pid, token)
+        return token
+
+    def load_share(self, token: str) -> str:
+        if not re.fullmatch(r"[a-f0-9]{16}", token):
+            raise FileNotFoundError(token)
+        matches = list(self.shares_dir.glob(f"*--{token}.html")) if self.shares_dir.exists() else []
+        if not matches:
+            raise FileNotFoundError(token)
+        return matches[0].read_text(encoding="utf-8")
+
+    def unpublish_share(self, pid: str) -> bool:
+        self._path(pid)  # validate the id shape before using it in a glob
+        removed = False
+        if self.shares_dir.exists():
+            for stale_share in self.shares_dir.glob(f"{pid}--*.html"):
+                stale_share.unlink()
+                removed = True
+        if removed:
+            logger.info("unpublished share page for project %s", pid)
+        return removed
 
     # -- low-level atomic write
 

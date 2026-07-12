@@ -138,6 +138,50 @@ def test_solve_cancel_is_accepted(client):
     raise AssertionError("cancelled solve did not settle")
 
 
+def test_share_publish_view_republish_unpublish(client):
+    pid = default_pid(client)
+    r = client.post(f"/api/projects/{pid}/share", json={"html": "<html><body>plan v1</body>"})
+    assert r.status_code == 200
+    token, path = r.json()["token"], r.json()["path"]
+    assert path == f"/share/{token}"
+
+    page = client.get(path)
+    assert page.status_code == 200
+    assert page.headers["content-type"].startswith("text/html")
+    assert "plan v1" in page.text
+
+    # republishing updates the content but keeps the link stable
+    r2 = client.post(f"/api/projects/{pid}/share", json={"html": "<html><body>plan v2</body>"})
+    assert r2.json()["token"] == token
+    assert "plan v2" in client.get(path).text
+
+    assert client.delete(f"/api/projects/{pid}/share").status_code == 200
+    assert client.get(path).status_code == 404
+    # unpublishing again is not an error
+    assert client.delete(f"/api/projects/{pid}/share").status_code == 200
+
+
+def test_share_validation(client):
+    pid = default_pid(client)
+    assert client.post("/api/projects/nope/share", json={"html": "<p>x</p>"}).status_code == 404
+    assert client.delete("/api/projects/nope/share").status_code == 404
+    assert client.post(f"/api/projects/{pid}/share", json={"html": ""}).status_code == 422
+    assert client.post(f"/api/projects/{pid}/share", json={}).status_code == 422
+    assert client.post(f"/api/projects/{pid}/share", json={"html": 42}).status_code == 422
+    big = "x" * (10 * 1024 * 1024 + 1)
+    assert client.post(f"/api/projects/{pid}/share", json={"html": big}).status_code == 413
+    assert client.get("/share/not-a-real-token").status_code == 404
+    assert client.get("/share/deadbeefdeadbeef").status_code == 404
+
+
+def test_share_is_removed_with_its_project(client):
+    pid = client.post("/api/projects", json={"name": "Shared"}).json()["id"]
+    token = client.post(f"/api/projects/{pid}/share", json={"html": "<p>x</p>"}).json()["token"]
+    assert client.get(f"/share/{token}").status_code == 200
+    client.delete(f"/api/projects/{pid}")
+    assert client.get(f"/share/{token}").status_code == 404
+
+
 def test_backups_listed_and_restored(client):
     pid = default_pid(client)
     project = client.get(f"/api/projects/{pid}").json()["project"]

@@ -38,6 +38,10 @@ dependency-free vanilla-JS frontend.
 - **Full-screen schedule view** — zoomable SVG Gantt with rich hover tooltips, a start/end
   details table, and a one-click export to a self-contained interactive HTML report that
   keeps the same zoom.
+- **Shareable read-only link** — publish the current schedule to a stable
+  `/share/<token>` URL that anyone who can reach the server can open (view-only, no
+  editing UI). Republish after a re-solve to update the same link, unpublish any time.
+  To share beyond your own machine, start the server with `--host 0.0.0.0`.
 - **Insights** — a reporting tab derived from the solved schedule: KPI tiles (makespan, late
   tasks, average utilisation, busiest unit), per-unit and per-type utilisation bars, a
   units×days load heatmap, and bottleneck/deadline callouts.
@@ -48,6 +52,33 @@ dependency-free vanilla-JS frontend.
   export/import them as JSON, undo/redo any change (Ctrl+Z/Y), and restore automatic
   backup snapshots. Data files are schema-versioned and migrate forward automatically.
 - **Zero database** — every project is one human-readable JSON file under `data/projects/`.
+
+## Tour
+
+![Demo: define resources and tasks, watch the solver improve the schedule live, explore the Gantt, check Insights, publish a share link](docs/demo.gif)
+
+*Define your resource pool and tasks, hit **Solve schedule** and watch the Gantt update
+live as CP-SAT finds better and better schedules ("best so far 286 h" → 94 h), explore
+the result with hover tooltips, check utilisation in **Insights**, and publish a
+read-only share link for your team.*
+
+<details>
+<summary><b>More screenshots</b> — Tasks, Resources, Insights, dark mode, and the shared schedule page</summary>
+<br>
+
+| Tasks — constraints & slot painting | Resources — pool, calendar & availability |
+| --- | --- |
+| ![Tasks tab](docs/tasks.png) | ![Resources tab](docs/resources.png) |
+
+| Insights — utilisation & bottlenecks | Dark mode |
+| --- | --- |
+| ![Insights tab](docs/insights.png) | ![Dark mode](docs/dark-mode.png) |
+
+The published read-only page a share link opens — no editing UI, just the plan:
+
+![Published share page](docs/share-page.png)
+
+</details>
 
 ## Quick start
 
@@ -111,6 +142,9 @@ The UI talks to a small JSON API you can also use directly
 | `POST /api/projects/{id}/solve` | Start a background solve, returns `{job_id}` |
 | `GET /api/solve/{job_id}` | Solve status, progress and result when done   |
 | `POST /api/solve/{job_id}/cancel` | Cancel a running solve (keeps best found) |
+| `POST /api/projects/{id}/share` | Publish the schedule page, returns `{token, path}` |
+| `DELETE /api/projects/{id}/share` | Unpublish the schedule page          |
+| `GET /share/{token}`     | The published read-only schedule page          |
 | `GET /api/projects/{id}/backups` | List automatic backup snapshots        |
 | `POST /api/projects/{id}/backups/{name}/restore` | Restore a snapshot     |
 | `GET /api/holidays/countries` | Countries supported for holiday auto-fill |

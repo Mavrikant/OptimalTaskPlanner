@@ -149,7 +149,9 @@ function scheduleRows() {
 function renderSchedule() {
   const st = $("#status"), wrap = $("#ganttwrap"), sc = previewSchedule || project.schedule;
   $("#detailsPanel").hidden = true;
-  $("#btnExport").disabled = !(sc && !previewSchedule && sc.status !== "INFEASIBLE" && sc.tasks.length);
+  const reportable = !!(sc && !previewSchedule && sc.status !== "INFEASIBLE" && sc.tasks.length);
+  $("#btnExport").disabled = !reportable;
+  $("#btnShare").disabled = !reportable;
   if (!sc) { st.textContent = t("sch.notSolved"); wrap.innerHTML = ""; return; }
   if (previewSchedule) {
     // the status line (elapsed time, best makespan so far) belongs to
