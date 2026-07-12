@@ -36,7 +36,7 @@ function showOnboarding(step) {
   $("#onboardBack").hidden = false;
 }
 function closeOnboarding() {
-  localStorage.setItem("labplanner.onboarded", "1");
+  localStorage.setItem("optimal-task-planner.onboarded", "1");
   $("#onboardBack").hidden = true;
 }
 $("#obSkip").onclick = closeOnboarding;
@@ -50,7 +50,7 @@ function applyThemeIcon() {
 $("#btnTheme").onclick = () => {
   const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
   document.documentElement.dataset.theme = next;
-  localStorage.setItem("labplanner.theme", next);
+  localStorage.setItem("optimal-task-planner.theme", next);
   applyThemeIcon();
   if (project) renderSchedule(); // the Gantt SVG bakes theme colours in
 };
@@ -186,7 +186,7 @@ async function switchProject(pid) {
   if (pid !== currentPid) {
     await saveNow().catch(() => {});
     currentPid = pid;
-    localStorage.setItem("labplanner.pid", pid);
+    localStorage.setItem("optimal-task-planner.pid", pid);
     ganttZoom = 1;
     selectedId = null; selectedUnit = null;
   }
@@ -272,7 +272,7 @@ async function duplicateProject() {
 function exportProject() {
   const safe = (project.name || "project").replace(/[^\w-]+/g, "_");
   downloadBlob(JSON.stringify(project, null, 2), "application/json",
-    `labplanner-${safe}.json`);
+    `optimal-task-planner-${safe}.json`);
 }
 $("#projImportFile").onchange = async e => {
   const f = e.target.files[0]; if (!f) return;

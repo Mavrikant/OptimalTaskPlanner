@@ -225,7 +225,7 @@ function exportHTML() {
 <table><thead><tr>${cols}</tr></thead><tbody>${body}</tbody></table>
 <script>${ganttViewerScript()}</script>
 </body></html>`;
-  downloadBlob(html, "text/html", `labplanner-schedule-${exportStamp()}.html`);
+  downloadBlob(html, "text/html", `optimal-task-planner-schedule-${exportStamp()}.html`);
 }
 
 let resizeTimer = null;

@@ -1,8 +1,8 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from labplanner.api import create_app
-from labplanner.config import Settings
+from optimal_task_planner.api import create_app
+from optimal_task_planner.config import Settings
 
 
 @pytest.fixture

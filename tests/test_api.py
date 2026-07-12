@@ -1,4 +1,4 @@
-from labplanner import __version__
+from optimal_task_planner import __version__
 
 
 def default_pid(client):
@@ -14,7 +14,7 @@ def test_health(client):
 def test_index_serves_frontend(client):
     r = client.get("/")
     assert r.status_code == 200
-    assert "LabPlanner" in r.text
+    assert "Optimal Task Planner" in r.text
 
 
 def test_default_project_is_seeded(client):

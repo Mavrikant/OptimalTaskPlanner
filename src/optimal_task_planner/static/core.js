@@ -1,7 +1,7 @@
 "use strict";
 /* ================= state & core helpers ================= */
 let project = null, horizon = null, selectedId = null, selectedUnit = null, saveTimer = null;
-let currentPid = localStorage.getItem("labplanner.pid") || null;
+let currentPid = localStorage.getItem("optimal-task-planner.pid") || null;
 let projectList = [];
 const P = () => "/api/projects/" + currentPid;
 

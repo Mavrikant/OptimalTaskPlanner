@@ -40,7 +40,7 @@ function requestNotifyPermission() {
 function notifySolveResult(body) {
   if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
   if (!document.hidden) return; // the status line already shows this — don't double up
-  const n = new Notification("LabPlanner", { body });
+  const n = new Notification("Optimal Task Planner", { body });
   n.onclick = () => { window.focus(); n.close(); };
 }
 

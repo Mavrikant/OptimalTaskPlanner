@@ -3,13 +3,13 @@ requires = ["setuptools>=69"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "labplanner"
+name = "optimal-task-planner"
 version = "0.1.0"
 description = "Optimal lab equipment scheduling over a rolling horizon, powered by CP-SAT"
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
-authors = [{ name = "LabPlanner contributors" }]
+authors = [{ name = "Optimal Task Planner contributors" }]
 keywords = ["scheduling", "cp-sat", "or-tools", "laboratory", "gantt", "planning"]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -41,17 +41,17 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/Mavrikant/LabPlanner"
-Issues = "https://github.com/Mavrikant/LabPlanner/issues"
+Homepage = "https://github.com/Mavrikant/OptimalTaskPlanner"
+Issues = "https://github.com/Mavrikant/OptimalTaskPlanner/issues"
 
 [project.scripts]
-labplanner = "labplanner.cli:main"
+optimal-task-planner = "optimal_task_planner.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
-labplanner = ["static/*", "static/locales/*", "static/fonts/*"]
+optimal_task_planner = ["static/*", "static/locales/*", "static/fonts/*"]
 
 [tool.ruff]
 line-length = 100
@@ -67,7 +67,7 @@ addopts = "-q"
 
 [tool.mypy]
 python_version = "3.12"
-files = ["src/labplanner"]
+files = ["src/optimal_task_planner"]
 warn_unused_configs = true
 warn_redundant_casts = true
 warn_unused_ignores = true

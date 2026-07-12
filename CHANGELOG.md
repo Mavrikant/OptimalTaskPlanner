@@ -14,12 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   tag, then builds and publishes a GitHub Release with the changelog section
   as notes and the sdist/wheel attached. `scripts/prepare_release.py` bumps
   the version and rolls the changelog in one step. See RELEASING.md.
-- `labplanner.__version__` is now read from installed package metadata
+- `optimal_task_planner.__version__` is now read from installed package metadata
   instead of being hardcoded, so it can no longer drift from
   `pyproject.toml`.
 - Backend logging: solve start/end (status, wall time, makespan), schema
   migrations, backup snapshots and solve-job submission/failure now log at
-  `INFO` (visible by default when running `labplanner`).
+  `INFO` (visible by default when running `optimal-task-planner`).
 - `mypy` type checking, wired into CI and the optional pre-commit hook.
 - A Playwright end-to-end smoke test (`e2e/smoke.spec.js`) — the first
   automated frontend coverage — plus a real README screenshot generated
@@ -107,4 +107,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   with a forward-migration chain (the legacy single project.json migrates
   losslessly on first start).
 - REST API (`/api/project`, `/api/solve`, `/api/holidays`, `/api/health`).
-- `labplanner` CLI entry point with `--host/--port/--data-dir/--days/--reload`.
+- `optimal-task-planner` CLI entry point with `--host/--port/--data-dir/--days/--reload`.

@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-LOCALES = Path(__file__).parent.parent / "src" / "labplanner" / "static" / "locales"
+LOCALES = Path(__file__).parent.parent / "src" / "optimal_task_planner" / "static" / "locales"
 
 
 def test_locales_parse_and_share_the_same_keys():

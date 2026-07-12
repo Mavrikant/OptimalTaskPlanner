@@ -22,11 +22,13 @@ class Settings:
     @classmethod
     def from_env(cls) -> Settings:
         return cls(
-            host=os.environ.get("LABPLANNER_HOST", cls.host),
-            port=int(os.environ.get("LABPLANNER_PORT", str(cls.port))),
-            data_dir=Path(os.environ.get("LABPLANNER_DATA_DIR", str(cls.data_dir))),
-            days=int(os.environ.get("LABPLANNER_DAYS", str(cls.days))),
+            host=os.environ.get("OPTIMAL_TASK_PLANNER_HOST", cls.host),
+            port=int(os.environ.get("OPTIMAL_TASK_PLANNER_PORT", str(cls.port))),
+            data_dir=Path(os.environ.get("OPTIMAL_TASK_PLANNER_DATA_DIR", str(cls.data_dir))),
+            days=int(os.environ.get("OPTIMAL_TASK_PLANNER_DAYS", str(cls.days))),
             solver_time_limit_s=float(
-                os.environ.get("LABPLANNER_SOLVER_TIME_LIMIT", str(cls.solver_time_limit_s))
+                os.environ.get(
+                    "OPTIMAL_TASK_PLANNER_SOLVER_TIME_LIMIT", str(cls.solver_time_limit_s)
+                )
             ),
         )

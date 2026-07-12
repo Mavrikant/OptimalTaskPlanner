@@ -28,7 +28,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or Settings.from_env()
     store = ProjectStore(settings.data_dir)
     store.ensure_default()  # migrates the legacy single-file layout if present
-    app = FastAPI(title="LabPlanner", version=__version__)
+    app = FastAPI(title="Optimal Task Planner", version=__version__)
 
     def load_or_404(pid: str) -> Project:
         try:

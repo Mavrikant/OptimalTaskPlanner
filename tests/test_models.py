@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from labplanner.models import (
+from optimal_task_planner.models import (
     SCHEMA_VERSION,
     EquipmentType,
     Project,

@@ -33,7 +33,7 @@ async function loadProjects() {
   if (!currentPid || !projectList.some(p => p.id === currentPid)) {
     currentPid = projectList[0].id;
   }
-  localStorage.setItem("labplanner.pid", currentPid);
+  localStorage.setItem("optimal-task-planner.pid", currentPid);
 }
 
 async function loadCurrent() {
@@ -53,7 +53,7 @@ async function load() {
   await loadCurrent();
   loadCountries(); // async, non-blocking
   loadVersion();
-  if (!localStorage.getItem("labplanner.onboarded")) showOnboarding(0);
+  if (!localStorage.getItem("optimal-task-planner.onboarded")) showOnboarding(0);
 }
 (async () => {
   await loadLocales();  // dictionaries must be in place before the first render

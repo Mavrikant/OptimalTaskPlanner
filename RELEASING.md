@@ -1,6 +1,6 @@
 # Releasing
 
-LabPlanner uses tag-triggered releases: you decide when and what version to
+Optimal Task Planner uses tag-triggered releases: you decide when and what version to
 ship (no auto-computed semantic version from commit messages), and pushing
 the tag does the rest — build, verify, and publish a GitHub Release.
 
@@ -36,7 +36,7 @@ the tag does the rest — build, verify, and publish a GitHub Release.
      the release notes and the built sdist/wheel attached.
 
 No PyPI publishing yet — install from a release's attached wheel or straight
-from the tag (`pip install git+https://github.com/Mavrikant/LabPlanner.git@vX.Y.Z`)
+from the tag (`pip install git+https://github.com/Mavrikant/OptimalTaskPlanner.git@vX.Y.Z`)
 until that's set up.
 
 ## Versioning
@@ -45,6 +45,6 @@ until that's set up.
 project's still pre-1.0 (`0.x`), breaking changes can land in a `MINOR` bump —
 bump `MAJOR` once the project reaches a stable 1.0 API/data-format contract.
 
-`labplanner.__version__` is read from the installed package's metadata
+`optimal_task_planner.__version__` is read from the installed package's metadata
 (`importlib.metadata`), not hardcoded — `pyproject.toml`'s `version` is the
 only place to change.

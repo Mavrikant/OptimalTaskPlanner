@@ -1,13 +1,13 @@
-# LabPlanner
+# Optimal Task Planner
 
-[![CI](https://github.com/Mavrikant/LabPlanner/actions/workflows/ci.yml/badge.svg)](https://github.com/Mavrikant/LabPlanner/actions/workflows/ci.yml)
+[![CI](https://github.com/Mavrikant/OptimalTaskPlanner/actions/workflows/ci.yml/badge.svg)](https://github.com/Mavrikant/OptimalTaskPlanner/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](pyproject.toml)
 
 **Optimal lab equipment scheduling over a rolling horizon, powered by
 [Google OR-Tools CP-SAT](https://developers.google.com/optimization/cp/cp_solver).**
 
-You describe your equipment pool, your tasks and their constraints — LabPlanner computes a
+You describe your equipment pool, your tasks and their constraints — Optimal Task Planner computes a
 provably optimal schedule and shows it as an interactive Gantt chart. Everything runs locally:
 a small FastAPI backend plus a dependency-free vanilla-JS frontend.
 
@@ -50,8 +50,8 @@ a small FastAPI backend plus a dependency-free vanilla-JS frontend.
 ## Quick start
 
 ```bash
-pip install git+https://github.com/Mavrikant/LabPlanner.git
-labplanner
+pip install git+https://github.com/Mavrikant/OptimalTaskPlanner.git
+optimal-task-planner
 ```
 
 Then open <http://127.0.0.1:8000>. A sample project is created on first run.
@@ -62,7 +62,7 @@ From a source checkout:
 python -m venv .venv
 # Windows: .venv\Scripts\activate    Linux/macOS: source .venv/bin/activate
 pip install -e .
-labplanner
+optimal-task-planner
 ```
 
 ## Usage
@@ -80,11 +80,11 @@ Server-level settings come from CLI flags or environment variables:
 
 | CLI flag     | Environment variable          | Default     | Description                     |
 | ------------ | ----------------------------- | ----------- | ------------------------------- |
-| `--host`     | `LABPLANNER_HOST`             | `127.0.0.1` | Bind address                    |
-| `--port`     | `LABPLANNER_PORT`             | `8000`      | Port                            |
-| `--data-dir` | `LABPLANNER_DATA_DIR`         | `./data`    | Where projects & backups live   |
-| `--days`     | `LABPLANNER_DAYS`             | `14`        | Default horizon length for new projects |
-| —            | `LABPLANNER_SOLVER_TIME_LIMIT`| `20`        | Default CP-SAT time limit for new projects (seconds) |
+| `--host`     | `OPTIMAL_TASK_PLANNER_HOST`             | `127.0.0.1` | Bind address                    |
+| `--port`     | `OPTIMAL_TASK_PLANNER_PORT`             | `8000`      | Port                            |
+| `--data-dir` | `OPTIMAL_TASK_PLANNER_DATA_DIR`         | `./data`    | Where projects & backups live   |
+| `--days`     | `OPTIMAL_TASK_PLANNER_DAYS`             | `14`        | Default horizon length for new projects |
+| —            | `OPTIMAL_TASK_PLANNER_SOLVER_TIME_LIMIT`| `20`        | Default CP-SAT time limit for new projects (seconds) |
 
 Horizon length, CP-SAT time limit and parallel workers are *project* settings (gear icon
 next to **Solve**); new projects inherit the CLI/env defaults above. Working hours and
@@ -126,7 +126,7 @@ unavailability windows. The objective is lexicographic through weighting:
 2. maximise **preferred-slot** usage,
 3. schedule higher-**priority** tasks earlier.
 
-See [`src/labplanner/solver.py`](src/labplanner/solver.py) — the solver is a pure function
+See [`src/optimal_task_planner/solver.py`](src/optimal_task_planner/solver.py) — the solver is a pure function
 of the project data and an injected `now` timestamp, which keeps it fully unit-testable.
 
 ## Development
@@ -137,7 +137,7 @@ ruff check .            # lint
 ruff format --check .   # formatting
 mypy                    # type check
 pytest                  # tests
-labplanner --reload
+optimal-task-planner --reload
 ```
 
 Contributions welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). If you're an AI coding

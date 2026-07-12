@@ -1,4 +1,4 @@
-# Contributing to LabPlanner
+# Contributing to Optimal Task Planner
 
 Thanks for your interest in contributing! This document describes how to set up a
 development environment and the conventions we follow.
@@ -11,8 +11,8 @@ form.
 ## Development setup
 
 ```bash
-git clone https://github.com/Mavrikant/LabPlanner.git
-cd LabPlanner
+git clone https://github.com/Mavrikant/OptimalTaskPlanner.git
+cd Optimal Task Planner
 python -m venv .venv
 # Windows: .venv\Scripts\activate    Linux/macOS: source .venv/bin/activate
 pip install -e .[dev]
@@ -22,7 +22,7 @@ pre-commit install   # optional: runs ruff check --fix + ruff format + mypy on e
 Run the app locally:
 
 ```bash
-labplanner --reload
+optimal-task-planner --reload
 ```
 
 ## Quality checks
@@ -44,15 +44,15 @@ test — it's the only automated frontend coverage:
 
 ```bash
 npm install && npx playwright install --with-deps chromium   # once
-labplanner --port 8010 --data-dir /tmp/lp-e2e-data &
-LABPLANNER_BASE_URL=http://127.0.0.1:8010 npx playwright test
+optimal-task-planner --port 8010 --data-dir /tmp/lp-e2e-data &
+OPTIMAL_TASK_PLANNER_BASE_URL=http://127.0.0.1:8010 npx playwright test
 ```
 
 ## Guidelines
 
 - Keep the backend in English (code, comments, error messages).
 - Every user-visible frontend string must go through the i18n layer: add the
-  key to **every** dictionary in `src/labplanner/static/locales/*.json`
+  key to **every** dictionary in `src/optimal_task_planner/static/locales/*.json`
   (a test enforces that all locales share the same keys).
 - Adding a language is two steps: create `static/locales/<code>.json` with the
   same keys as `en.json`, and append a `{code, name, flag}` entry to

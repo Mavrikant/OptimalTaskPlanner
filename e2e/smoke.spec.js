@@ -8,7 +8,7 @@ const path = require("node:path");
 // covered by the Python test suite; this only guards the UI wiring).
 test("loads, solves the sample project, and renders a schedule", async ({ page }) => {
   // skip the first-visit onboarding tour, which otherwise blocks all clicks
-  await page.addInitScript(() => localStorage.setItem("labplanner.onboarded", "1"));
+  await page.addInitScript(() => localStorage.setItem("optimal-task-planner.onboarded", "1"));
   await page.goto("/");
   await expect(page.locator('[data-tab="schedule"]')).toBeVisible();
 

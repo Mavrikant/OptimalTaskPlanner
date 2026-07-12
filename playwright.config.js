@@ -9,7 +9,7 @@ module.exports = defineConfig({
   workers: 1,
   reporter: "list",
   use: {
-    baseURL: process.env.LABPLANNER_BASE_URL || "http://127.0.0.1:8010",
+    baseURL: process.env.OPTIMAL_TASK_PLANNER_BASE_URL || "http://127.0.0.1:8010",
     trace: "on-first-retry",
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],

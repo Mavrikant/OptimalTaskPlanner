@@ -7,7 +7,7 @@ denser, agent-oriented map of the codebase.
 
 ## What this project is
 
-LabPlanner is a local-only web app: a FastAPI backend that runs a CP-SAT (OR-Tools)
+Optimal Task Planner is a local-only web app: a FastAPI backend that runs a CP-SAT (OR-Tools)
 scheduler over a rolling horizon of 30-minute slots, plus a dependency-free vanilla-JS
 frontend. No database — each project is a single JSON file on disk. See the README's
 "How it works" section for the scheduling model itself.
@@ -20,16 +20,16 @@ pip install -e .[dev]
 
 ruff check .            # lint
 ruff format --check .   # formatting (use `ruff format .` to fix)
-mypy                    # type check (src/labplanner only, see [tool.mypy] in pyproject.toml)
+mypy                    # type check (src/optimal_task_planner only, see [tool.mypy] in pyproject.toml)
 pytest                  # full test suite
 pytest tests/test_solver.py -k reschedule   # run a subset while iterating
 
-labplanner --reload     # run the dev server at http://127.0.0.1:8000
+optimal-task-planner --reload     # run the dev server at http://127.0.0.1:8000
 
 npm install                                          # once, installs Playwright
 npx playwright install --with-deps chromium           # once, downloads the browser
-labplanner --port 8010 --data-dir /tmp/lp-e2e-data &  # server for e2e (separate data dir)
-LABPLANNER_BASE_URL=http://127.0.0.1:8010 npx playwright test   # e2e/smoke.spec.js
+optimal-task-planner --port 8010 --data-dir /tmp/lp-e2e-data &  # server for e2e (separate data dir)
+OPTIMAL_TASK_PLANNER_BASE_URL=http://127.0.0.1:8010 npx playwright test   # e2e/smoke.spec.js
 ```
 
 Run `ruff check .`, `ruff format --check .`, `mypy` and `pytest` before considering any
@@ -49,7 +49,7 @@ second usage gets a spurious type error. Give it a distinct name instead.
 ## Repo map
 
 ```
-src/labplanner/
+src/optimal_task_planner/
   models.py          Pydantic schema for Project/Task/WorkCalendar/Schedule.
                       Defines the 30-minute slot system (SLOT_MINUTES, SLOTS_PER_DAY)
                       and SCHEMA_VERSION for on-disk project files.
@@ -66,8 +66,8 @@ src/labplanner/
                       logic lives in solver.py/storage.py.
   config.py           Settings.from_env() — server-level config (host/port/
                       data-dir/days/solver-time-limit) from CLI flags or
-                      LABPLANNER_* env vars.
-  cli.py              `labplanner` entry point (argparse + uvicorn.run).
+                      OPTIMAL_TASK_PLANNER_* env vars.
+  cli.py              `optimal-task-planner` entry point (argparse + uvicorn.run).
   __init__.py          `__version__` is read from installed package metadata
                       (`importlib.metadata`), not hardcoded — see RELEASING.md.
   static/             Vanilla JS, no framework, no build step, no ES modules —
@@ -142,7 +142,7 @@ scripts/
   loading losslessly.
 - **Logging**: each backend module gets its own `logger = logging.getLogger(__name__)`;
   `cli.py` calls `logging.basicConfig()` so it's actually visible when running
-  `labplanner` (library code should never call `basicConfig` itself). Log
+  `optimal-task-planner` (library code should never call `basicConfig` itself). Log
   lifecycle events at `INFO` (solve start/end + status, migrations, backup
   snapshots, solve-job submission) and unexpected exceptions with
   `logger.exception(...)` inside an `except` block so the traceback isn't lost —
@@ -181,9 +181,9 @@ scripts/
 - Update `CHANGELOG.md` under the `## [Unreleased]` section for user-facing changes
   (see existing entries for tone/format). Don't add a new dated version heading
   yourself — `scripts/prepare_release.py` does that at release time.
-- Don't hand-edit `src/labplanner.egg-info/`, `__pycache__/`, `.pytest_cache/`, or
+- Don't hand-edit `src/optimal_task_planner.egg-info/`, `__pycache__/`, `.pytest_cache/`, or
   `.ruff_cache/` — all are generated/git-ignored.
-- Never hardcode a version string — `labplanner.__version__` is derived from
+- Never hardcode a version string — `optimal_task_planner.__version__` is derived from
   installed package metadata (see `__init__.py`). Cutting a release is a
   maintainer action documented in [RELEASING.md](RELEASING.md), not something
   an agent should do unprompted.

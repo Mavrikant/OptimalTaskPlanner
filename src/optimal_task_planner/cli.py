@@ -1,4 +1,4 @@
-"""Command-line entry point: ``labplanner`` starts the web server."""
+"""Command-line entry point: ``optimal-task-planner`` starts the web server."""
 
 from __future__ import annotations
 
@@ -15,8 +15,8 @@ from .config import Settings
 def main(argv: list[str] | None = None) -> None:
     defaults = Settings.from_env()
     parser = argparse.ArgumentParser(
-        prog="labplanner",
-        description="Optimal lab equipment scheduling — starts the LabPlanner web UI.",
+        prog="optimal-task-planner",
+        description="Optimal lab equipment scheduling — starts the Optimal Task Planner web UI.",
     )
     parser.add_argument("--host", default=defaults.host, help="bind address")
     parser.add_argument("--port", type=int, default=defaults.port, help="port")
@@ -31,18 +31,18 @@ def main(argv: list[str] | None = None) -> None:
     args = parser.parse_args(argv)
 
     # Pass settings via env so uvicorn's factory (and --reload workers) pick them up.
-    os.environ["LABPLANNER_HOST"] = args.host
-    os.environ["LABPLANNER_PORT"] = str(args.port)
-    os.environ["LABPLANNER_DATA_DIR"] = args.data_dir
-    os.environ["LABPLANNER_DAYS"] = str(args.days)
+    os.environ["OPTIMAL_TASK_PLANNER_HOST"] = args.host
+    os.environ["OPTIMAL_TASK_PLANNER_PORT"] = str(args.port)
+    os.environ["OPTIMAL_TASK_PLANNER_DATA_DIR"] = args.data_dir
+    os.environ["OPTIMAL_TASK_PLANNER_DAYS"] = str(args.days)
 
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
     )
 
-    print(f"LabPlanner {__version__} — http://{args.host}:{args.port}")
+    print(f"Optimal Task Planner {__version__} — http://{args.host}:{args.port}")
     uvicorn.run(
-        "labplanner.api:create_app",
+        "optimal_task_planner.api:create_app",
         factory=True,
         host=args.host,
         port=args.port,

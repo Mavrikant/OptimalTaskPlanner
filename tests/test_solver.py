@@ -2,8 +2,8 @@
 
 from datetime import datetime, timedelta
 
-from labplanner.models import Project, Schedule, ScheduledTask, ScheduleSegment
-from labplanner.solver import solve
+from optimal_task_planner.models import Project, Schedule, ScheduledTask, ScheduleSegment
+from optimal_task_planner.solver import solve
 
 NOW = datetime(2026, 7, 6, 7, 0)  # Monday 07:00 -> first free slot = 14
 DAY0 = "2026-07-06"

@@ -21,8 +21,8 @@ body:
   - type: input
     id: version
     attributes:
-      label: LabPlanner version
-      description: Shown in the footer, or `labplanner --version`
+      label: Optimal Task Planner version
+      description: Shown in the footer, or `optimal-task-planner --version`
     validations:
       required: true
   - type: input

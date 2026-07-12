@@ -74,5 +74,5 @@ jobs:
           RELEASE_VERSION: ${{ steps.tag.outputs.version }}
         run: |
           gh release create "$GITHUB_REF_NAME" dist/* \
-            --title "LabPlanner $RELEASE_VERSION" \
+            --title "Optimal Task Planner $RELEASE_VERSION" \
             --notes-file /tmp/release-notes.md

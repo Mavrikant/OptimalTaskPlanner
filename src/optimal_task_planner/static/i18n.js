@@ -33,7 +33,7 @@ async function loadLocales() {
   }));
 }
 
-let LANG = localStorage.getItem("labplanner.lang") ||
+let LANG = localStorage.getItem("optimal-task-planner.lang") ||
   ((navigator.language || "").toLowerCase().startsWith("tr") ? "tr" : "en");
 if (!LANGUAGES.some(lang => lang.code === LANG)) LANG = "en";
 
@@ -62,7 +62,7 @@ function applyI18n() {
 function setLang(lang) {
   if (!LANGUAGES.some(l => l.code === lang)) return;
   LANG = lang;
-  localStorage.setItem("labplanner.lang", lang);
+  localStorage.setItem("optimal-task-planner.lang", lang);
   applyI18n();
   if (typeof renderAll === "function" && window.__appReady) renderAll();
 }

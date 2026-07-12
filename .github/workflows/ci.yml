@@ -67,7 +67,7 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-      - name: Install LabPlanner
+      - name: Install Optimal Task Planner
         run: pip install -e .[dev]
       - name: Install Playwright
         run: |
@@ -75,12 +75,12 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Start server
         run: |
-          labplanner --port 8010 --data-dir /tmp/labplanner-e2e-data &
+          optimal-task-planner --port 8010 --data-dir /tmp/optimal-task-planner-e2e-data &
           timeout 30 bash -c 'until curl -sf http://127.0.0.1:8010/api/health; do sleep 1; done'
       - name: Run e2e tests
         run: npx playwright test
         env:
-          LABPLANNER_BASE_URL: http://127.0.0.1:8010
+          OPTIMAL_TASK_PLANNER_BASE_URL: http://127.0.0.1:8010
       - name: Upload failure artifacts
         if: failure()
         uses: actions/upload-artifact@v4

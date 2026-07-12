@@ -1,8 +1,8 @@
 {
-  "name": "labplanner-e2e",
+  "name": "optimal-task-planner-e2e",
   "private": true,
   "version": "1.0.0",
-  "description": "Playwright end-to-end tests for the LabPlanner web UI.",
+  "description": "Playwright end-to-end tests for the Optimal Task Planner web UI.",
   "scripts": {
     "test:e2e": "playwright test"
   },

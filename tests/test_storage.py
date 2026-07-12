@@ -5,8 +5,8 @@ import threading
 import pytest
 from pydantic import ValidationError
 
-from labplanner.models import SCHEMA_VERSION, Project
-from labplanner.storage import BACKUP_KEEP, ProjectStore, default_project, migrate
+from optimal_task_planner.models import SCHEMA_VERSION, Project
+from optimal_task_planner.storage import BACKUP_KEEP, ProjectStore, default_project, migrate
 
 
 @pytest.fixture

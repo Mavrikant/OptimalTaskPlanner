@@ -1,7 +1,7 @@
 from datetime import datetime
 
-from labplanner.calendar_utils import build_work_mask, first_free_slot, horizon_start
-from labplanner.models import SLOTS_PER_DAY, WorkCalendar
+from optimal_task_planner.calendar_utils import build_work_mask, first_free_slot, horizon_start
+from optimal_task_planner.models import SLOTS_PER_DAY, WorkCalendar
 
 MONDAY = datetime(2026, 7, 6)  # a Monday
 
