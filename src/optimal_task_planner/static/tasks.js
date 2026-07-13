@@ -117,21 +117,21 @@ function renderEditor() {
 
   const dlDateOpts = horizon.day_dates.map((d, i) =>
     `<option value="${d}" ${task.deadline && task.deadline.date === d ? "selected" : ""}>
-       ${dayLabelLong(i)} (${d})</option>`).join("");
+       ${dayLabelLong(i)}</option>`).join("");
   const dlSlot = task.deadline ? hhmmSlot(task.deadline.time) : 34; // default 17:00
   const dlTimeOpts = Array.from({ length: 49 }, (_, s) =>
     `<option value="${s}" ${s === dlSlot ? "selected" : ""}>${slotHHMM(s)}</option>`).join("");
   const es = task.earliest_start;
   const esDateOpts = horizon.day_dates.map((d, i) =>
     `<option value="${d}" ${es && es.date === d ? "selected" : ""}>
-       ${dayLabelLong(i)} (${d})</option>`).join("");
+       ${dayLabelLong(i)}</option>`).join("");
   const esSlot = es ? hhmmSlot(es.time) : hhmmSlot(project.calendar.work_start);
   const esTimeOpts = Array.from({ length: 49 }, (_, s) =>
     `<option value="${s}" ${s === esSlot ? "selected" : ""}>${slotHHMM(s)}</option>`).join("");
   const pin = task.pinned_start;
   const pinDateOpts = horizon.day_dates.map((d, i) =>
     `<option value="${d}" ${pin && pin.date === d ? "selected" : ""}>
-       ${dayLabelLong(i)} (${d})</option>`).join("");
+       ${dayLabelLong(i)}</option>`).join("");
   const pinSlot = pin ? hhmmSlot(pin.time) : hhmmSlot(project.calendar.work_start);
   const pinTimeOpts = Array.from({ length: 49 }, (_, s) =>
     `<option value="${s}" ${s === pinSlot ? "selected" : ""}>${slotHHMM(s)}</option>`).join("");

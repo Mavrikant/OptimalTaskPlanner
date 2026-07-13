@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- The day dropdowns in the task editor (deadline, earliest start, fixed
+  start) no longer append the ISO date — "13 Temmuz Pazartesi" instead of
+  "13 Temmuz Pazartesi (2026-07-13)".
+
 ### Fixed
 
 - Browsers that had cached a pre-0.2 `index.html` (served without cache
